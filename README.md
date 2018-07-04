@@ -31,8 +31,6 @@ exit
 ```
 More handy shortcuts can be found [here](https://code.visualstudio.com/docs/editor/integrated-terminal).
 
----
-
 Now that you're familiar with the terminal in Visual Studio Code, let's check you have installed Node correctly by entering the command:
 ```bash
 node --version
