@@ -57,15 +57,24 @@ To understand some of these concepts better, it's time to get coding!
 In the Visual Studio Code terminal, simply entering the command
 ```bash
 node
+> 
 ```
 will take you into Node's shell called **REPL**. REPL stands for Read-Eval-Print-Loop and allows you to experiment with Node commands. Entering the command
 ```bash
-.help
+> .help
+.break    Sometimes you get stuck, this gets you out
+.clear    Alias for .break
+.editor   Enter editor mode
+.exit     Exit the repl
+.help     Print this help message
+.load     Load JS from a file into the REPL session
+.save     Save all evaluated commands in this REPL session to a file
 ```
 lists all of the available commands - try that now. Pressing the `Tab` key twice provides us with a list of available commands / autocomplete options. If you do that on an empty terminal line, you will get the list of properties on the `global` object in Node. Try pressing `Tab` twice after typing the following:
-```javascript
-var str = "foo";
-str.
+```bash
+> var str = "foo";
+undefined
+> str.
 ```
 Now you will see what is available on the *str* variable. You will also notice that the result of assigning the variable is printed (`undefined` in this case).
 
@@ -84,28 +93,63 @@ let r = repl.start({
 Run this script in Node by running the command
 ```bash
 node custom-repl.js
+> 
 ```
 in the terminal. The `repl` module allows you to create a custom REPL session. In this case undefined values will not be printed e.g. try assigning a variable once again). More information about starting custom REPL sessions can be found [here](https://nodejs.org/api/repl.html#repl_repl_start_options).
+
+## Introduction to require and modules
+
+Modules allow you to encapsulate related code into a single unit. A module has a 1 to 1 relationship with files on the file system and any module can be "required" by another module that needs it. `require` and `module` are modules themselves and are used for managing module dependencies. The `require` module itself provides the `require()` function used for loading in modules.
+
+Type into the terminal:
+```bash
+> node -p "module"
+Module {
+  id: '[eval]',
+  exports: {},
+  parent: undefined,
+  filename: 'C:\\Projects\\NodeJSDojo\\[eval]',
+  loaded: false,
+  children: [],
+  paths:
+   [ 'C:\\Projects\\NodeJSDojo\\node_modules',
+     'C:\\Projects\\node_modules',
+     'C:\\node_modules' ] }
+```
+
+The `-p` flag allows Node to evaluate a JavaScript string and print the result. So the above is equivalent to creating a JavaScript file e.g. *index.js* containing `console.log(module)` and running `node index.js`.
+You should be able to see the module of the Node process run from the above command. Note that the module has a unique `id`, parent-child relationships to other modules (empty in this case) and a list of paths (since Node allows multiple ways of requiring a file). You will revisit modules and the process of requiring modules later.
 
 ## The global object in Node
 
 In Node, the top-level scope is not the global scope. In regular JavaScript, `var a = ...` in the top-level scope will define a global variable (not a recommended practice). But in Node, any top-level variables declared in a Node module will be local to that module. To allow for global variables, Node uses the `global` object which you saw briefly earlier.
 
-The `process` object on the `global` object allows Node to communicate with its running environment. Try running the following in terminal (*the `-p` flag allows node to parse and run a JavaScript string*) to see the versions of Node's dependencies:
+For example, the `process` object on the `global` object allows Node to communicate with its running environment. Try running the following in terminal to see the versions of Node's dependencies:
 ```bash
-node -p "process.versions"
+> node -p "process.versions"
+{ http_parser: '2.7.0',
+  node: '8.9.4',
+  v8: '6.1.534.50',
+  ... }
 ```
 
-## Introduction to require and modules
+Anything defined on the `global` object is available across all modules e.g. `global.foo = "bar"`. There is an exception to this - there are 5 variables on the `global` object that appear to be global, but they are not:
 
-Modules allow you to encapsulate related code into a single unit. A module has a 1 to 1 relationship with files on the file system and any module can be "required" by another module that needs it. `require` and `module` are modules themselves, are available on the `global` object used for managing module dependencies. The `require` module itself provides the `require()` function used for loading in modules.
+* `__dirname`
+* `__filename`
+* `export`
+* `module`
+* `require()`
 
-You can inspect the global module - type into the terminal:
-```bash
-node -p "module"
-```
-
-You can see that the module has a unique `id`, parent-child relationships to other modules (empty in this case) and a list of paths (since Node allows multiple ways of requiring a file). You will revisit modules and the process of requiring modules later.
+This is because when Node compiles a module, it wraps the code in a wrapper function.
 
 ## Wrapping and caching modules
+
+You can inspect the wrapper function used for a general module by running the following command in the terminal:
+```bash
+> node -p "require('module').wrapper"
+[ '(function (exports, require, module, __filename, __dirname) { ',
+  '\n});' ]
+```
+
 
