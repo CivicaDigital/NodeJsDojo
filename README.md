@@ -23,7 +23,7 @@ mkdir "C:/Projects/NodeJsDojo"
 code "C:/Projects/NodeJsDojo"
 ```
 
-You can press **Ctrl + '** to open up the integrated terminal in Visual Studio Code and use this for our commands. Pressing **Ctrl + \** splits the terminal into multiple sessions, whilst **Ctrl + Shift + '** opens a new terminal in the dropdown. You can close any unnecessary terminals by entering the command:
+You can press **Ctrl + '** to open up the integrated terminal in Visual Studio Code and use this for our commands. Pressing **Ctrl + \\** splits the terminal into multiple sessions, whilst **Ctrl + Shift + '** opens a new terminal in the dropdown terminal list. You can close any unnecessary terminals by entering the command:
 ```bash
 exit
 ```
@@ -33,5 +33,8 @@ Now that you're familiar with the terminal in Visual Studio Code, let's check yo
 ```bash
 node --version
 ```
-You should see a version number in the format of `v8.x.x`.
+You should see a version number in the format of `v8.x.x`
+
+## What is Node.js?
+
 
