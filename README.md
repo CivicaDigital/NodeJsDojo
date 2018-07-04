@@ -57,18 +57,10 @@ To understand some of these concepts better, it's time to get coding!
 In the Visual Studio Code terminal, simply entering the command
 ```bash
 node
-> 
 ```
 will take you into Node's shell called **REPL**. REPL stands for Read-Eval-Print-Loop and allows you to experiment with Node commands. Entering the command
 ```bash
 > .help
-.break    Sometimes you get stuck, this gets you out
-.clear    Alias for .break
-.editor   Enter editor mode
-.exit     Exit the repl
-.help     Print this help message
-.load     Load JS from a file into the REPL session
-.save     Save all evaluated commands in this REPL session to a file
 ```
 lists all of the available commands - try that now. Pressing the `Tab` key twice provides us with a list of available commands / autocomplete options. If you do that on an empty terminal line, you will get the list of properties on the `global` object in Node. Try pressing `Tab` twice after typing the following:
 ```bash
@@ -93,7 +85,6 @@ let r = repl.start({
 Run this script in Node by running the command
 ```bash
 node custom-repl.js
-> 
 ```
 in the terminal. The `repl` module allows you to create a custom REPL session. In this case undefined values will not be printed e.g. try assigning a variable once again). More information about starting custom REPL sessions can be found [here](https://nodejs.org/api/repl.html#repl_repl_start_options).
 
@@ -104,6 +95,7 @@ Modules allow you to encapsulate related code into a single unit. A module has a
 Type into the terminal:
 ```bash
 > node -p "module"
+
 Module {
   id: '[eval]',
   exports: {},
@@ -127,6 +119,7 @@ In Node, the top-level scope is not the global scope. In regular JavaScript, `va
 For example, the `process` object on the `global` object allows Node to communicate with its running environment. Try running the following in terminal to see the versions of Node's dependencies:
 ```bash
 > node -p "process.versions"
+
 { http_parser: '2.7.0',
   node: '8.9.4',
   v8: '6.1.534.50',
@@ -148,6 +141,7 @@ This is because when Node compiles a module, it wraps the code in a wrapper func
 You can inspect the wrapper function used for a general module by running the following command in the terminal:
 ```bash
 > node -p "require('module').wrapper"
+
 [ '(function (exports, require, module, __filename, __dirname) { ',
   '\n});' ]
 ```
