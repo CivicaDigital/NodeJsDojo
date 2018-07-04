@@ -16,7 +16,7 @@ The tutorial also assumes:
 
 ## Setting up your environment
 
-Let's create a directory in which to store the examples you will work with in this tutorial. Open up an instance of Command Prompt and paste the following (*replacing with a suitable directory of your choice if you wish*):
+To start, create a directory in which to store the examples you will work with in this tutorial. Open up an instance of Command Prompt and paste the following (*replacing with a suitable directory of your choice if you wish*):
 
 ```bash
 mkdir "C:/Projects/NodeJsDojo"
@@ -29,7 +29,7 @@ exit
 ```
 More handy shortcuts can be found [here](https://code.visualstudio.com/docs/editor/integrated-terminal).
 
-Now that you're familiar with the terminal in Visual Studio Code, let's check you have installed Node correctly by entering the command:
+Now that you're familiar with the terminal in Visual Studio Code, you can check Node has been installed correctly by entering the command:
 ```bash
 node --version
 ```
@@ -39,7 +39,7 @@ You should see a version number in the format of `v8.x.x`
 
 Put simply, Node is a free, open source, cross-platform server environment. It runs in a single thread, and uses non-blocking, asynchronous programming so it can handle multiple requests simultaneously via events. It is fundamentally a JavaScript runtime environment, but is a lot more than just JavaScript - there is also a lot of C++ and C behind the scenes!
 
-Let's have a look at the architecture behind Node - here's a general layout:
+Here is a general (simplified) layout of Node's architecture:
 
 ![Node's architecture](./images/1-NodeArchitecture.png)
 
@@ -50,7 +50,7 @@ Node consists of 3 primary building blocks:
 
 Another core part of Node is [npm](https://docs.npmjs.com/), or *node package manager*. Since a key functionality of Node is modularity, npm allows users to publish packages to a registry via a Command Line Interface (CLI) - this will be explored later.
 
-To understand some of these concepts better, let's get coding by playing around with some commands in Node.
+To understand some of these concepts better, it's time to get coding!
 
 ## Node CLI and REPL
 
@@ -69,7 +69,7 @@ str.
 ```
 Now you will see what is available on the *str* variable. You will also notice that the result of assigning the variable is printed (`undefined` in this case).
 
-Let's press `Ctrl + C` twice (or `Ctrl + D`) to terminate the Node REPL.
+Press `Ctrl + C` twice (or `Ctrl + D`) to terminate the Node REPL.
 
 ## Running scripts in Node
 
@@ -81,7 +81,7 @@ let r = repl.start({
 });
 ```
 
-We can run this script in Node by running the command
+Run this script in Node by running the command
 ```bash
 node repl.js
 ```
@@ -100,12 +100,12 @@ node -p "process.versions"
 
 The `require` and `module` modules are available on the `global` object and are used for managing module dependencies. The `require` module itself provides the `require()` function used for loading in modules. Modules have a 1 to 1 relationship with files on the file system and any module can be "required" by another module that uses it.
 
-Let's inspect the global module. Open up a REPL session and type:
+You can inspect the global module - type into the terminal:
 ```bash
-module
+node -p "module"
 ```
 
-You can see that the module has a unique `id`, parent-child relationships to other modules (empty in this case) and a list of paths (since Node allows multiple ways of requiring a file).
+You can see that the module has a unique `id`, parent-child relationships to other modules (empty in this case) and a list of paths (since Node allows multiple ways of requiring a file). You will revisit modules and the process of requiring modules later.
 
 ## Wrapping and caching modules
 
