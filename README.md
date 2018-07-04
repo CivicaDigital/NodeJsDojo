@@ -65,7 +65,9 @@ will take you into Node's shell called **REPL**. REPL stands for Read-Eval-Print
 lists all of the available commands - try that now. Pressing the `Tab` key twice provides us with a list of available commands / autocomplete options. If you do that on an empty terminal line, you will get the list of properties on the `global` object in Node. Try pressing `Tab` twice after typing the following:
 ```bash
 > var str = "foo";
+
 undefined
+
 > str.
 ```
 Now you will see what is available on the *str* variable. You will also notice that the result of assigning the variable is printed (`undefined` in this case).
@@ -110,6 +112,7 @@ Module {
 ```
 
 The `-p` flag allows Node to evaluate a JavaScript string and print the result. So the above is equivalent to creating a JavaScript file e.g. *index.js* containing `console.log(module)` and running `node index.js`.
+
 You should be able to see the module of the Node process run from the above command. Note that the module has a unique `id`, parent-child relationships to other modules (empty in this case) and a list of paths (since Node allows multiple ways of requiring a file). You will revisit modules and the process of requiring modules later.
 
 ## The global object in Node
@@ -145,5 +148,6 @@ You can inspect the wrapper function used for a general module by running the fo
 [ '(function (exports, require, module, __filename, __dirname) { ',
   '\n});' ]
 ```
+
 
 
