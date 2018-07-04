@@ -19,8 +19,8 @@ The tutorial also assumes:
 To start, create a directory in which to store the examples you will work with in this tutorial. Open up an instance of Command Prompt and paste the following (*replacing with a suitable directory of your choice if you wish*):
 
 ```bash
-mkdir "C:/Projects/NodeJsDojo"
-code "C:/Projects/NodeJsDojo"
+mkdir ".%HOMEPATH%/Projects/NodeJsDojo"
+code ".%HOMEPATH%/Projects/NodeJsDojo"
 ```
 
 You can press `Ctrl + '` to open up the integrated terminal in Visual Studio Code and use this for our commands. Pressing `Ctrl + \` splits the terminal into multiple sessions, whilst `Ctrl + Shift + '` opens a new terminal in the dropdown terminal list. You can close any unnecessary terminals by entering the command:
@@ -73,7 +73,7 @@ Press `Ctrl + C` twice (or `Ctrl + D`) to terminate the Node REPL.
 
 ## Running scripts in Node
 
-On the left hand side of Visual Studio Code, create a new file called *repl.js* and paste in the following code:
+On the left hand side of Visual Studio Code, create a new file called *custom-repl.js* and paste in the following code:
 ```javascript
 const repl = require('repl');
 let r = repl.start({
@@ -83,7 +83,7 @@ let r = repl.start({
 
 Run this script in Node by running the command
 ```bash
-node repl.js
+node custom-repl.js
 ```
 in the terminal. The `repl` module allows you to create a custom REPL session. In this case undefined values will not be printed e.g. try assigning a variable once again). More information about starting custom REPL sessions can be found [here](https://nodejs.org/api/repl.html#repl_repl_start_options).
 
@@ -96,9 +96,9 @@ The `process` object on the `global` object allows Node to communicate with its 
 node -p "process.versions"
 ```
 
-## Require and modules
+## Introduction to require and modules
 
-The `require` and `module` modules are available on the `global` object and are used for managing module dependencies. The `require` module itself provides the `require()` function used for loading in modules. Modules have a 1 to 1 relationship with files on the file system and any module can be "required" by another module that uses it.
+Modules allow you to encapsulate related code into a single unit. A module has a 1 to 1 relationship with files on the file system and any module can be "required" by another module that needs it. `require` and `module` are modules themselves, are available on the `global` object used for managing module dependencies. The `require` module itself provides the `require()` function used for loading in modules.
 
 You can inspect the global module - type into the terminal:
 ```bash
