@@ -389,7 +389,41 @@ const server = require('net')
     console.log('Server bound');
 });
 ```
-Now when running the Node and Telnet sessions you will notice the additional logging and handling of the 'end' event when disconnecting the client socket. 
+Now when running the Node and Telnet sessions you will notice the additional logging and handling of the 'end' event when disconnecting the client socket. You can listen for data back from the socket by listening to the `data` event (returned as a *Buffer* object which is used for working with binary streams of data). By tracking all connected sockets, you now have everything you need to create a basic chat server:
+
+```javascript
+// server.js
+const port = 1337;
+const clients = [];
+
+const server = require('net')
+.createServer(socket => {
+    clients.push(socket);
+    socket.name = `${clients.indexOf(socket)}`;
+    socket.write(`Hello ${socket.name} \n`);
+    console.log(`${socket.name} connected`);
+    socket.on('data', data => {
+        Object.entries(clients).forEach(([, sckt]) => {
+            sckt.write(`${socket.name}: \n`);
+            sckt.write(`${data}\n`);
+        });
+        console.log(`Broadcasted to ${clients.length - 1} clients`);
+    });
+    socket.on('end', socket => {
+        clients.splice(clients.indexOf(socket), 1);
+        console.log(`${socket.name} disconnected`);
+    });
+})
+.listen(port, () => {
+    console.log(`Server bound on port ${port}`);
+});
+
+timestamp = () => {
+    // consider moment.js for more accurate timekeeping
+    const now = new Date();
+    return `${now.getHours()}:${now.getMinutes()}`;
+};
+```
 
 
 
@@ -407,3 +441,4 @@ Now when running the Node and Telnet sessions you will notice the additional log
 * https://support.holmsecurity.com/hc/en-us/articles/212963869
 * https://gist.github.com/tedmiston/5935757
 * https://docs.oracle.com/javase/tutorial/networking/sockets/definition.html
+* https://gist.github.com/creationix/707146
