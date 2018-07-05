@@ -238,9 +238,46 @@ console.log(mA.notLoadedValue);
 
 If you run `node moduleA.js`, you will see that `123` and `undefined` are logged to the console. Node will share a partial exports object to any module that requires in the case of a circular dependencies.
 
-## Event loop discussion with web server example
+## The event queue, event loop and call stack
 
-Node is described as "*an asynchronous event driven JavaScript runtime*". Let's 
+Node is described as "*an asynchronous event driven JavaScript runtime*". So far, you've seen one example of a Node event in the server example:
+
+```javascript
+server.on('request', (req, res) => {
+    res.end('Hello world\n');
+}).listen(8000);
+```
+
+But how do events like this work in Node? As you saw earlier in the architecture of Node, events are handled by Libuv via an *event loop* and *event queue*. The V8 *call stack* is a [LIFO](https://en.wikipedia.org/wiki/Stack_(abstract_data_type)) list of functions to be executed. The *event queue* contains a list of events with an associated function to be invoked when it is triggered. The job of the *event loop* is to monitor the *call stack* and *event queue* so that, if the *call stack* is empty, and the *event queue* is not, the last function will get pushed from the queue to be invoked in the call stack.
+
+When running an asynchronous function on a timer or waiting on a response, Node uses its API (e.g. timers, emitters, wrappers around OS operations) to handle pushing items on to the *event queue* when needed.
+
+Create a folder called `event-loop` containing the following JavaScript file:
+```javascript
+// messageLogger.js
+const logMessageWithDelay = (delay, msg, callback) => {
+    setTimeout(() => {
+        console.log(msg);
+        if(callback) callback();
+    }, delay);
+};
+
+for (let i=0; i<5; i++) {
+    logMessageWithDelay(i*1000, "Message: ".concat(i));
+};
+```
+
+Run this in the terminal by running `node event-loop/messageLogger.js` and you should see a message printed every second for 5 seconds. It's important to remember that `setTimeout` is not actually part of V8 - it's an API provided by Node (the browser equivalent is `window.setTimeout` from the JavaScript API). The following diagram describes what happens between the *call stack* and *event queue* as these messages are logged:
+
+![Node's Event Loop](./images/2-EventLoop.png)
+
+As soon as functions are invoked, they are popped off of the call stack. So `setTimeout`, `logMessageWithDelay` and (after the rest of the `logMessageWithDelay` functions have been invoked), `anonymous` are popped off of the *call stack*. When the `setTimeout` API is called, Node instantiates a timer outside of the V8 JavaScript run time which, after completion, pushes the callback to the *event queue*. As soon as the event is in the queue and the *call stack* is empty, the *event loop* on its next iteration will push the callback to the *call stack* to be invoked.
+
+By default, when the *event loop* and *event queue* is empty, Node will exit the process.
+
+## Inside the event loop
+
+
 
 ## Other examples
 
@@ -252,3 +289,4 @@ Node is described as "*an asynchronous event driven JavaScript runtime*". Let's
 * https://medium.freecodecamp.org/node-js-module-exports-vs-exports-ec7e254d63ac
 * https://app.pluralsight.com/player?course=nodejs-advanced
 * https://app.pluralsight.com/library/courses/node-intro/table-of-contents
+* https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/
