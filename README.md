@@ -301,7 +301,11 @@ fs.readFile(__filename, () => {
 });
 ```
 
-Which of these do you think will be displayed first? In this case, `immediate 2` will be logged before `timeout 2`, and the order of `immediate 1` and `timeout 1` is non-deterministic (run a few times and you will see different orders). To understand this, let's investigate the event loop inner workings. The following [diagram from the Node website](https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/) gives a simplified overview of the event loop's order of operations to decide which events to push to the event queue and when:
+The `readFile` method of the File System (`fs`) module can be used to asynchronously read the entire contents of a file. Recall that `__filename` refers to the file name of the current module.
+
+Which of these do you think will be displayed first?
+
+In this case, `immediate 2` will be logged before `timeout 2`, and the order of `immediate 1` and `timeout 1` is non-deterministic (run a few times and you will see different orders). To understand this, let's investigate the event loop inner workings. The following [diagram from the Node website](https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/) gives a simplified overview of the event loop's order of operations to decide which events to push to the event queue and when:
 
 ```
    ┌───────────────────────────┐
@@ -335,14 +339,71 @@ On every iteration, Node executes the following phases:
 
 The main advantage to using `setImmediate` over `setTimeout` is `setImmediate` will always be executed before any timers if scheduled within an I/O cycle, independently of how many timers are present. It's always recommended to use `setImmediate` if you want something to be executed on the next iteration (*tick*) of the event loop. Confusingly enough, there is also a `process.nextTick` method that does not execute on the next iteration of the event loop. It is actually processed independently of the phases in the event loop, after the current operation finishes and before the event loop continues - it should be used with caution.
 
-## Other examples
+## Creating a chat application
+
+In this section, you will explore how to use events to implement a chat application that users can simultaneously message each other on.
+
+Start by creating a folder called `chat` and create the following JavaScript file:
+
+```javascript
+// server.js
+const net = require('net');
+```
+
+The `net` module provides a way of creating TCP servers and TCP clients (*Transmission Control Protocol*). TCP works by streaming packets of data where rigorous checking and acknowledgement of delivery ensure reliable data (a brief summary of UDP vs TCP can be found [here](https://support.holmsecurity.com/hc/en-us/articles/212963869)).
+
+The `createServer` method can be used to create the TCP server. Add the following to code to create a server listening on port 1337:
+
+```javascript
+const server = net.createServer();
+server.listen(1337);
+```
+
+The `Server` is an instance of `EventEmitter`. This is a class within Node which is returned by the `events` module i.e. `const EventEmitter = require('events');`. Listeners (also extending `EventEmitter`) can listen for events and fire a callback, as well as emit events themselves. Add the following code to add a listener for the `connection` event which is fired whenever a client connects to the server. Note that a socket is one endpoint of a two-way communication link between two programs running on the network:
+
+```javascript
+server.on('connection', socket => {
+    console.log('Client connected');
+    socket.write('Hello!\n');
+});
+```
+
+To test this code, press `Ctrl + \` to split the terminal in Visual Studio Code. In one session, run `node .\chat\server.js`. In the other, type the command
+```bash
+telnet localhost 1337
+```
+to connect to your server via TCP. You should see `Hello!` is displayed. To exit the Telnet session press `Ctrl + ]` and type `quit`. You will notice that an error is thrown in the server terminal. By default (server property `allowHalfOpen` is false) the socket will not automatically send a FIN packet indicating it has no more data to write to the server. Therefore, you must either change this boolean or listen for the server's `end` event that is fired whenever a client disconnects.
+
+Let's listen for the 'end' event so we can also add logging. You can also shorten the instantiation of the server so that a listener for the `connection` event is also added. The `listen` method also accepts a callback for its second parameter to fire on the `listening` event (emitted when the server has been bound):
+
+```javascript
+const server = require('net')
+.createServer(socket => {
+    console.log('Client connected');
+    socket.write('Hello!\n');
+    socket.on('end', () => {
+        console.log('Client disconnected');
+    });
+})
+.listen(1337, () => {
+    console.log('Server bound');
+});
+```
+Now when running the Node and Telnet sessions you will notice the additional logging and handling of the 'end' event when disconnecting the client socket. 
+
+
 
 ## NPM and how to publish your own module
 
 ## The require process and caching modules
+
+## Web server and making use of clusters
 
 ## References
 * https://medium.freecodecamp.org/node-js-module-exports-vs-exports-ec7e254d63ac
 * https://app.pluralsight.com/player?course=nodejs-advanced
 * https://app.pluralsight.com/library/courses/node-intro/table-of-contents
 * https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/
+* https://support.holmsecurity.com/hc/en-us/articles/212963869
+* https://gist.github.com/tedmiston/5935757
+* https://docs.oracle.com/javase/tutorial/networking/sockets/definition.html
