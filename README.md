@@ -425,8 +425,6 @@ timestamp = () => {
 };
 ```
 
-
-
 ## NPM and how to publish your own module
 
 ## The require process and caching modules
@@ -434,6 +432,7 @@ timestamp = () => {
 ## Web server and making use of clusters
 
 ## References
+
 * https://medium.freecodecamp.org/node-js-module-exports-vs-exports-ec7e254d63ac
 * https://app.pluralsight.com/player?course=nodejs-advanced
 * https://app.pluralsight.com/library/courses/node-intro/table-of-contents
