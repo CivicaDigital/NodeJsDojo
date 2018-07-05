@@ -137,11 +137,11 @@ Anything defined on the `global` object is available across all modules e.g. `gl
 
 There are 5 variables on the `global` object that appear to be global when they are not:
 
-* `__dirname`
-* `__filename`
-* `export`
-* `module`
-* `require()`
+* `__dirname`   - The directory name of the current module
+* `__filename`  - The file name of the current module
+* `exports`     - A reference to the module.exports that is shorter to type
+* `module`      - A reference to the current module
+* `require()`   - Used to require modules
 
 This is because when Node compiles a module, it wraps the code in a wrapper function. You can inspect the wrapper function used for a general module by running the following command in the terminal:
 ```bash
@@ -149,6 +149,14 @@ This is because when Node compiles a module, it wraps the code in a wrapper func
 
 [ '(function (exports, require, module, __filename, __dirname) { ',
   '\n});' ]
+```
+
+It should be noted that `exports` is a convenience variable. `module.exports` is returned by `require()`, but `exports` is not. As such, the `exports` object cannot be replaced directly, so:
+
+```javascript
+exports.foo = 1;       // okay
+module.exports = { foo: 1 };  // okay
+exports = { id: 1 };  // not okay
 ```
 
 Taking a step back, it's important to understand requiring and exporting modules in Node. Let's look at a practical example - a HTTP server.
@@ -230,17 +238,9 @@ console.log(mA.notLoadedValue);
 
 If you run `node moduleA.js`, you will see that `123` and `undefined` are logged to the console. Node will share a partial exports object to any module that requires in the case of a circular dependencies.
 
-It should be noted that `exports` is a convenience variable. `module.exports` is returned by `require()`, but `exports` is not. As such, the `exports` object cannot be replaced directly, so:
-
-```javascript
-exports.foo = 1;       // okay
-module.exports = { foo: 1 };  // okay
-exports = { id: 1 };  // not okay
-```
-
 ## Event loop discussion with web server example
 
-Node is described as "*an asynchronous event driven JavaScript runtime*". 
+Node is described as "*an asynchronous event driven JavaScript runtime*". Let's 
 
 ## Other examples
 
