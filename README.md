@@ -267,7 +267,7 @@ for (let i=0; i<5; i++) {
 };
 ```
 
-Run this in the terminal by running `node event-loop/messageLogger.js` and you should see a message printed every second for 5 seconds. It's important to remember that `setTimeout` is not actually part of V8 - it's an API provided by Node (the browser equivalent is `window.setTimeout` from the JavaScript API). The following diagram describes what happens between the *call stack* and *event queue* as these messages are logged:
+Run this in the terminal by running `node event-loop/messageLogger.js` and you should see a message printed every second for 5 seconds. The `setTimeout` function schedules execution of a one-time callback after a delay (in ms). It's important to remember that `setTimeout` is not actually part of V8 - it's an API provided by Node (the browser equivalent is `window.setTimeout` from the JavaScript API). The following diagram describes what happens between the *call stack* and *event queue* as these messages are logged:
 
 ![Node's Event Loop](./images/2-EventLoop.png)
 
@@ -277,7 +277,63 @@ By default, when the *event loop* and *event queue* is empty, Node will exit the
 
 ## Inside the event loop
 
+Other than `setTimeout`, Node also has the functions `setImmediate` and `setInterval` for scheduling callback execution. Create a new file in the `event-loop` folder with the following code:
 
+```javascript
+// setTimeout-vs-setImmediate.js
+const fs = require('fs');
+
+setTimeout(() => {
+  console.log('timeout 1');
+}, 0);
+
+setImmediate(() => {
+  console.log('immediate 1');
+});
+
+fs.readFile(__filename, () => {
+  setTimeout(() => {
+    console.log('timeout 2');
+  }, 0);
+  setImmediate(() => {
+    console.log('immediate 2');
+  });
+});
+```
+
+Which of these do you think will be displayed first? In this case, `immediate 2` will be logged before `timeout 2`, and the order of `immediate 1` and `timeout 1` is non-deterministic (run a few times and you will see different orders). To understand this, let's investigate the event loop inner workings. The following [diagram from the Node website](https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/) gives a simplified overview of the event loop's order of operations to decide which events to push to the event queue and when:
+
+```
+   ┌───────────────────────────┐
+┌─>│           timers          │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │     pending callbacks     │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │       idle, prepare       │
+│  └─────────────┬─────────────┘      ┌───────────────┐
+│  ┌─────────────┴─────────────┐      │   incoming:   │
+│  │           poll            │<─────┤  connections, │
+│  └─────────────┬─────────────┘      │   data, etc.  │
+│  ┌─────────────┴─────────────┐      └───────────────┘
+│  │           check           │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+└──┤      close callbacks      │
+   └───────────────────────────┘
+```
+
+On every iteration, Node executes the following phases:
+
+* **timers**: this phase executes callbacks scheduled by `setTimeout()` and `setInterval()`.
+* **pending callbacks**: executes I/O callbacks deferred to the next loop iteration.
+* **idle, prepare**: only used internally.
+* **poll**: retrieve new I/O events; execute I/O related callbacks (almost all with the exception of close callbacks, the ones scheduled by timers, and `setImmediate()`); Node will block here when appropriate.
+* **check**: `setImmediate()` callbacks are invoked here.
+* **close callbacks**: some close callbacks, e.g. `socket.on('close', ...)`.
+
+The main advantage to using `setImmediate` over `setTimeout` is `setImmediate` will always be executed before any timers if scheduled within an I/O cycle, independently of how many timers are present. It's always recommended to use `setImmediate` if you want something to be executed on the next iteration (*tick*) of the event loop. Confusingly enough, there is also a `process.nextTick` method that does not execute on the next iteration of the event loop. It is actually processed independently of the phases in the event loop, after the current operation finishes and before the event loop continues - it should be used with caution.
 
 ## Other examples
 
