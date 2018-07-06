@@ -393,29 +393,40 @@ Now when running the Node and Telnet sessions you will notice the additional log
 
 ```javascript
 // server.js
-const port = 1337;
-const clients = [];
+const port = require('./config').port;
+const sockets = [];
 
 const server = require('net')
 .createServer(socket => {
-    clients.push(socket);
-    socket.name = `${clients.indexOf(socket)}`;
-    socket.write(`Hello ${socket.name} \n`);
-    console.log(`${socket.name} connected`);
+    let msg = [];
+    let lineFeedsRegex = /\n|\s{2,}/g;
+
+    sockets.push(socket);
+    socket.write(`Welcome! What is your name?\r\n`);
     socket.on('data', data => {
-        Object.entries(clients).forEach(([, sckt]) => {
-            sckt.write(`${socket.name}: \n`);
-            sckt.write(`${data}\n`);
-        });
-        console.log(`Broadcasted to ${clients.length - 1} clients`);
+        if (data.toString().match(lineFeedsRegex)) {
+            if (!socket.name) {
+                socket.name = msg.join('').trim();
+                broadcast(`(${timestamp()}) ${socket.name} connected`);
+            } else {
+                broadcast(`(${timestamp()}) ${socket.name} : ${msg.join('').trim()}`, socket);
+            }
+            msg = [];
+        }
+        else {
+            msg.push(data);
+        }
     });
-    socket.on('end', socket => {
-        clients.splice(clients.indexOf(socket), 1);
-        console.log(`${socket.name} disconnected`);
+    socket.on('end', () => {
+        let leaver = socket.name;
+        sockets.splice(sockets.indexOf(socket), 1);
+        if (leaver) {
+            broadcast(`(${timestamp()}) ${leaver} disconnected`);
+        }
     });
 })
 .listen(port, () => {
-    console.log(`Server bound on port ${port}`);
+    console.log(`(${timestamp()}) Server bound on port ${port}`);
 });
 
 timestamp = () => {
@@ -423,7 +434,23 @@ timestamp = () => {
     const now = new Date();
     return `${now.getHours()}:${now.getMinutes()}`;
 };
+
+broadcast = (message, sender) => {
+    let receivers = 0;
+    sockets.forEach( (socket) => {
+        // Don't broadcast to senders / people starting app
+        if (socket === sender || !socket.name) return;
+        socket.write(`${message}\r\n`);
+        receivers++;
+    });
+    console.log(message);
+    if(receivers > 0) {
+        console.log(`(${timestamp()}) Broadcasted message to ${receivers} clients`);
+    }
+};
 ```
+
+## NPM and installing moment for better timekeeping
 
 ## NPM and how to publish your own module
 
