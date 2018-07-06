@@ -398,6 +398,11 @@ Now when running the Node and Telnet sessions you will notice the additional log
  By tracking all connected sockets, you now have everything you need to create a basic chat server:
 
 ```javascript
+// config.json
+{
+    "port": 1337
+}
+
 // server.js
 const port = require('./config').port;
 const sockets = [];
