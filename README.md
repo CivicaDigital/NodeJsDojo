@@ -404,23 +404,16 @@ const sockets = [];
 
 const server = require('net')
 .createServer(socket => {
-    let msg = [];
-    let lineFeedsRegex = /\n|\s{2,}/g;
-
     sockets.push(socket);
-    socket.write(`Welcome! What is your name?\r\n`);
+    socket.write(`Welcome! What is your name?\n`);
     socket.on('data', data => {
-        if (data.toString().match(lineFeedsRegex) && msg.join('').trim() !== '') {
+        if (data.toString().trim() !== '') {
             if (!socket.name) {
-                socket.name = msg.join('').trim();
+                socket.name = data;
                 broadcast(`(${timestamp()}) ${socket.name} connected`);
             } else {
-                broadcast(`(${timestamp()}) ${socket.name} : ${msg.join('').trim()}`, socket);
+                broadcast(`(${timestamp()}) ${socket.name} : ${data.toString().trim()}`, socket);
             }
-            msg = [];
-        }
-        else {
-            msg.push(data);
         }
     });
     socket.on('end', () => {
@@ -446,7 +439,7 @@ broadcast = (message, sender) => {
     sockets.forEach( (socket) => {
         // Don't broadcast to senders / people starting app
         if (socket === sender || !socket.name) return;
-        socket.write(`${message}\r\n`);
+        socket.write(`${message}\n`);
         receivers++;
     });
     console.log(message);
@@ -454,6 +447,26 @@ broadcast = (message, sender) => {
         console.log(`(${timestamp()}) Broadcasted message to ${receivers} clients`);
     }
 };
+
+// client.js
+const Netcat = require('node-netcat');
+const client = Netcat.client(1337, 'localhost');
+const readline = require('readline');
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+client.on('data', (data) => {
+    process.stdout.write(data);
+});
+
+rl.on('line', (data) => {
+    client.send(data);
+});
+
+client.start();
 ```
 
 ## NPM and installing moment for better timekeeping
