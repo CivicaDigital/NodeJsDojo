@@ -389,7 +389,13 @@ const server = require('net')
     console.log('Server bound');
 });
 ```
-Now when running the Node and Telnet sessions you will notice the additional logging and handling of the 'end' event when disconnecting the client socket. You can listen for data back from the socket by listening to the `data` event (returned as a *Buffer* object which is used for working with binary streams of data). By tracking all connected sockets, you now have everything you need to create a basic chat server:
+Now when running the Node and Telnet sessions you will notice the additional logging and handling of the 'end' event when disconnecting the client socket. You can listen for data back from the socket by listening to the `data` event. In Linux, you can use Netcat which will take each line 
+
+---
+---
+---
+
+ By tracking all connected sockets, you now have everything you need to create a basic chat server:
 
 ```javascript
 // server.js
@@ -404,7 +410,7 @@ const server = require('net')
     sockets.push(socket);
     socket.write(`Welcome! What is your name?\r\n`);
     socket.on('data', data => {
-        if (data.toString().match(lineFeedsRegex)) {
+        if (data.toString().match(lineFeedsRegex) && msg.join('').trim() !== '') {
             if (!socket.name) {
                 socket.name = msg.join('').trim();
                 broadcast(`(${timestamp()}) ${socket.name} connected`);
