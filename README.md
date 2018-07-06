@@ -339,7 +339,7 @@ On every iteration, Node executes the following phases:
 
 The main advantage to using `setImmediate` over `setTimeout` is `setImmediate` will always be executed before any timers if scheduled within an I/O cycle, independently of how many timers are present. It's always recommended to use `setImmediate` if you want something to be executed on the next iteration (*tick*) of the event loop. Confusingly enough, there is also a `process.nextTick` method that does not execute on the next iteration of the event loop. It is actually processed independently of the phases in the event loop, after the current operation finishes and before the event loop continues - it should be used with caution.
 
-## Creating a chat application
+# Creating a chat application
 
 In this section, you will explore how to use events to implement a chat application that users can simultaneously message each other on.
 
@@ -358,6 +358,8 @@ The `createServer` method can be used to create the TCP server. Add the followin
 const server = net.createServer();
 server.listen(1337);
 ```
+
+## Events
 
 The `Server` is an instance of `EventEmitter`. This is a class within Node which is returned by the `events` module i.e. `const EventEmitter = require('events');`. Listeners (also extending `EventEmitter`) can listen for events and fire a callback, as well as emit events themselves. Add the following code to add a listener for the `connection` event which is fired whenever a client connects to the server. Note that a socket is one endpoint of a two-way communication link between two programs running on the network:
 
@@ -389,7 +391,19 @@ const server = require('net')
     console.log('Server bound');
 });
 ```
-Now when running the Node and Telnet sessions you will notice the additional logging and handling of the 'end' event when disconnecting the client socket. You can listen for data back from the socket by listening to the `data` event. In Linux, you can use Netcat which will take each line 
+Now when running the Node and Telnet sessions you will notice the additional logging and handling of the `end` event when disconnecting the client socket.
+
+# NPM and installing packages
+
+Telnet is somewhat limited as the Windows version tries to send data for each character, making it difficult to work with sending full string messages (the Linux version supports linemode, allowing the user to send one line at a time). To combat this, and to investigate the *node package manager* (npm) in more detail, let's download a package from Node's package registry.
+
+## The require process and caching modules
+
+---
+---
+---
+
+You can listen for data back from the socket by listening to the `data` event. In Linux, you can use Netcat which will take each line 
 
 ---
 ---
@@ -474,13 +488,13 @@ rl.on('line', (data) => {
 client.start();
 ```
 
-## NPM and installing moment for better timekeeping
+## Installing moment for better timekeeping
 
 ## NPM and how to publish your own module
 
-## The require process and caching modules
-
 ## Web server and making use of clusters
+
+If time
 
 ## References
 
