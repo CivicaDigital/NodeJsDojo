@@ -1,12 +1,17 @@
-# Node.js dojo
-In this tutorial, you will learn the basics of Node and explore its applications in developing scalable network applications.
+# Node.js Dojo
+
+Welcome to this Node.js dojo, or *NoJo*. In this tutorial, you will learn the basics of Node and explore its applications in developing scalable network applications. You will learn what Node really is, including its asynchronous event capabilities, how modules enable clean encapsulation and you will even create a basic chat application and web server that can handle multiple concurrent requests.
+
+![Node.js Logo](./images/0-NodeLogo.png)
+
+# Introduction
 
 ## Prerequisites
 
 To follow along, you will need to install the following software on your local machine:
 
 * [Node v8](https://nodejs.org/en/) (*which includes [npm](https://www.npmjs.com/get-npm)*)
-* [Yarn](https://yarnpkg.com/en/) (*recommended for people in Bath due to proxy issues*)
+* [Yarn](https://yarnpkg.com/en/) (*recommended for people in Bath due to proxy issues as an alternative to npm*)
 * [Visual Studio Code](https://code.visualstudio.com/)
 
 The tutorial also assumes:
@@ -35,7 +40,7 @@ node --version
 ```
 You should see a version number in the format of `v8.x.x`
 
-## What actually is Node?
+# What actually is Node?
 
 Put simply, Node is a free, open source, cross-platform server environment. It runs in a single thread, and uses non-blocking, asynchronous programming so it can handle multiple requests simultaneously via events. It is fundamentally a JavaScript runtime environment, but is a lot more than just JavaScript - there is also a lot of C++ and C behind the scenes!
 
@@ -403,9 +408,23 @@ const server = require('net')
 ```
 Now when running the Node and Telnet sessions you will notice the additional logging and handling of the `end` event when disconnecting the client socket.
 
-# NPM and installing packages
+## NPM / Yarn and installing packages
 
-Telnet is somewhat limited as the Windows version tries to send data for each character, making it difficult to work with sending full string messages (the Linux version supports linemode, allowing the user to send one line at a time). To combat this, and to investigate the *node package manager* (npm) in more detail, let's download a package from Node's package registry.
+Telnet is somewhat limited as the Windows version tries to send data for each character, making it difficult to work with sending full string chat messages (the Linux version supports linemode, allowing the user to send one line at a time). To combat this, and to learn about the *node package manager* (npm), let's download a package from Node's package registry.
+
+![Npm vs Yarn](./images/3-NpmYarn.png)
+
+Npm consists of the [npm registry](https://npmjs.com) and the corresponding command-line tool, which is distributed with Node.js. The registry contains over 600,000 packages which provide open-source modules that can be used in your applications. Yarn is an alternative package manager command-line tool developed by Facebook which was designed to address some initial issues with the way npm handles dependencies, whilst still making use of the npm registry. Both tools are similar and an in-depth discussion of which to use can be found [here](https://www.keycdn.com/blog/npm-vs-yarn/).
+
+**Note:** Both the equivalent npm and Yarn commands are provided in any code snippets (but obviously avoid running both).
+
+Quit any running terminal processes and run the following command:
+```bash
+npm add node-netcat
+
+yarn add node-netcat
+```
+*Side note - If you have any proxy issues that are causing issues downloading the package, try using CNTLM in combination with changing your package manager's proxy settings - see the Appendix at the end for more details.*
 
 ## The require process and caching modules
 
@@ -506,6 +525,22 @@ client.start();
 
 If time
 
+# Appendix
+
+## Proxy issues and CNTLM
+
+Some users have had issues downloading and installing npm packages with the corporate proxy. Try using the following commands in combination with running CNTLM via the `start proxy` bat file. For the Bath office, this can be downloaded from `Y:\CloudVault\Pinky\Applications\Freeware\CNTLM` where the Y drive is mapped to `\\iplbath.com`.
+
+```bash
+npm config set proxy http://127.0.0.1:3128
+npm config set https-proxy http://127.0.0.1:3128
+npm config set registry "http://registry.npmjs.org/"
+
+yarn config set proxy http://127.0.0.1:3128
+yarn config set https-proxy http://127.0.0.1:3128
+yarn config set registry "http://registry.npmjs.org/
+```
+
 ## References
 
 * https://medium.freecodecamp.org/node-js-module-exports-vs-exports-ec7e254d63ac
@@ -516,3 +551,4 @@ If time
 * https://gist.github.com/tedmiston/5935757
 * https://docs.oracle.com/javase/tutorial/networking/sockets/definition.html
 * https://gist.github.com/creationix/707146
+* https://www.keycdn.com/blog/npm-vs-yarn/
