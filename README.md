@@ -416,15 +416,131 @@ Telnet is somewhat limited as the Windows version tries to send data for each ch
 
 Npm consists of the [npm registry](https://npmjs.com) and the corresponding command-line tool, which is distributed with Node.js. The registry contains over 600,000 packages which provide open-source modules that can be used in your applications. Yarn is an alternative package manager command-line tool developed by Facebook which was designed to address some initial issues with the way npm handles dependencies, whilst still making use of the npm registry. Both tools are similar and an in-depth discussion of which to use can be found [here](https://www.keycdn.com/blog/npm-vs-yarn/).
 
-**Note:** Both the equivalent npm and Yarn commands are provided in any code snippets (but obviously avoid running both).
+**Note:** Both the equivalent npm and Yarn commands are provided in any code snippets (but obviously avoid running both). If you have any proxy issues that are causing issues downloading the package, try using CNTLM in combination with changing your package manager's proxy settings - see the Appendix at the end for more details.
 
-Quit any running terminal processes and run the following command:
+Quit any running terminal processes and run the following:
 ```bash
-npm add node-netcat
+npm install node-netcat
 
 yarn add node-netcat
 ```
-*Side note - If you have any proxy issues that are causing issues downloading the package, try using CNTLM in combination with changing your package manager's proxy settings - see the Appendix at the end for more details.*
+
+A shorter version of the install command is `npm i ...`. From this command, the *node-netcat* package has been installed locally. [Netcat](https://en.wikipedia.org/wiki/Netcat) is a computer networking utility for reading from and writing to network connections using TCP or UDP. The *node-netcat* package can be used to implement Netcat-like functionality in Node.js, which we'll need for our chat application.
+
+## What is a package?
+
+The package install command installs a package, and any packages that it depends upon. But, what exactly constitutes a package? According to the [npm documentation](https://docs.npmjs.com/cli/install), a package is any one of the following:
+* a folder (or git url resolving to one) containing a program described by a *package.json* file
+* a gzipped tarball (or url resolving to one), containing the previous point
+* a file published on the npm registry
+
+When a package is installed locally, as in the previous example, a local `node_modules` folder is created in the project directory containing the required files. Looking in the project directory for this dojo, you will see that a `package.json` file has been created. Open it up and you will see the following (or similar depending on the latest package version):
+
+```json
+{
+  "dependencies": {
+    "node-netcat": "^1.4.8"
+  }
+}
+```
+
+## Publishing packages
+
+If we wanted to [publish](https://docs.npmjs.com/cli/publish) our package to the registry, we would need to supply (as a minimum) a unique name and version not already in the registry being published to (the public npm registry by default). Here's an example of a `package.json` file with more complete metadata:
+
+```json
+{
+    "name" : "nodejs-dojo",
+    "version" : "0.0.1",
+    "author" : "Keian Barton",
+    "description" : "A cool module!",
+    "keywords" : ["cool", "awesome"],
+    "repository": {
+        "type" : "git",
+        "url" : "https://github.com/KeianBarton/xxxxx.git"
+    },
+    "dependencies" : {
+        "node-netcat": "^1.4.8"
+    },
+    "main" : "app/main.js"
+}
+```
+
+`main` defines the entry point to the module - the file used when someone requires your module.
+
+## Global packages
+
+We can also install global packages that are not project-dependent. As an example, we can install a specific version of the Angular CLI which can be used from the command line, and then remove it:
+
+```bash
+npm install -g @angular/cli@1.0.0
+ng --version
+npm uninstall -g @angular/cli@1.0.0
+
+yarn global add @angular/cli@1.0.0
+ng --version
+yarn global remove @angular/cli@1.0.0
+```
+
+## Versioning packages
+
+[Semantic versioning](https://docs.npmjs.com/misc/semver) is used to identify the version, or valid range of versions, that a package and/or its dependencies can have. For example "`<2.9.0`" refers to versions less than 2.9.0. In the following example, the corresponding package has developer dependencies and optional dependencies installed with `npm i -D ...` and `npm i -O ...` respectively. By looking up the semantic versioning documentation, can you understand which versions are valid in this package?
+
+```json
+{
+    "name": "fun-package",
+    "version": "1.0.0",
+    "dependencies": {
+        "moment": "~2.22.1"
+    },
+    "devDependencies": {
+        "faker": "4.1.x"
+    },
+    "optionalDependencies": {
+        "commander": "^2.15.0"
+    }
+}
+```
+
+One final thing to note about packages is that we can update all our installed packages to their latest versions by simply using the command:
+
+```bash
+npm update
+
+yarn upgrade
+```
+
+## Integrating node-netcat into the chat application
+
+Now that `node-netcat` has been installed, it's time to use it in the application. Create a new JavaScript file as follows, and we'll go through it bit by bit:
+
+```javascript
+// client.js
+const Netcat = require('node-netcat');
+const readline = require('readline');
+
+const client = Netcat.client(1337, 'localhost');
+
+const rl = readline.createInterface({
+    input: process.stdin
+});
+
+client.on('data', (data) => {
+    process.stdout.write(data);
+});
+
+rl.on('line', (line) => {
+    client.send(line);
+});
+
+client.start();
+```
+
+## Discuss streams in relation to process.in etc
+
+## More on requiring modules
+
+use with installing moment and go into more detail
 
 ## The require process and caching modules
 
@@ -552,3 +668,4 @@ yarn config set registry "http://registry.npmjs.org/
 * https://docs.oracle.com/javase/tutorial/networking/sockets/definition.html
 * https://gist.github.com/creationix/707146
 * https://www.keycdn.com/blog/npm-vs-yarn/
+* https://docs.npmjs.com/cli/install
