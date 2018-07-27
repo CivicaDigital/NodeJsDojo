@@ -88,7 +88,7 @@ Run this script in Node by running the command
 ```bash
 node custom-repl.js
 ```
-in the terminal. The `repl` module allows you to create a custom REPL session. In this case undefined values will not be printed e.g. try assigning a variable as before). More information about starting custom REPL sessions can be found [here](https://nodejs.org/api/repl.html#repl_repl_start_options).
+in the terminal. The `repl` module allows you to create a custom REPL session. In this case undefined values will not be printed e.g. try running the command `var str = "foo";` once more). More information about starting custom REPL sessions can be found [here](https://nodejs.org/api/repl.html#repl_repl_start_options).
 
 ## Introduction to require and modules
 
@@ -151,12 +151,12 @@ This is because when Node compiles a module, it wraps the code in a wrapper func
   '\n});' ]
 ```
 
-It should be noted that `exports` is a convenience variable. `module.exports` is returned by `require()`, but `exports` is not. As such, the `exports` object cannot be replaced directly, so:
+It should be noted that `exports` is a convenience variable that simply refers to `module.exports`. The `module.exports` object is used for defining what a module exports and makes available through the `require()` method. In the following few lines of code we can see that the `exports` object can be used to export properties (but should not be replaced), whereas the entire object for `module.exports` *can* be replaced:
 
 ```javascript
 exports.foo = 1;       // okay
 module.exports = { foo: 1 };  // okay
-exports = { id: 1 };  // not okay
+exports = { id: 1 };  // avoid as exports no longer refers to module.exports
 ```
 
 Taking a step back, it's important to understand requiring and exporting modules in Node. Let's look at a practical example - a HTTP server.
@@ -178,8 +178,9 @@ This code snippet creates a basic HTTP server that can accept requests, and resp
 module.exports = server;
 ```
 
-Now, in a separate Javascript file add the following code:
+Now, in a separate Javascript file `main.js` add the following code:
 ```javascript
+// main.js
 const server = require('./server');
 ```
 
@@ -190,7 +191,7 @@ Try adding the line
 console.log(module);
 ```
 
-to `main.js` and you will see, when running the Node application again, the module has children now (recall that this *module* is an argument of the wrapper function):
+to `main.js` and you will see, when running the Node application again, the module has children now (recall that this *module* is an argument of the wrapper function for the module encapsulated in `main.js`):
 
 ```bash
 Module {
@@ -217,7 +218,7 @@ Module {
 
 ## Circular references
 
-You may have noticed above that some of parent of the server module was printed as *[Circular]*. In this case, it is to stop Node recursively printing the same parent-child relationships again and again, but it should be noted that Node does actually support circular dependencies. The *loaded* boolean of the Module describes if all of the code from that module has been run yet - in the previous example, the server code had been fully run whereas the main code had not.
+You may have noticed above that the parent property of the server module was printed as *[Circular]*. In this case, it is to stop Node recursively printing the same parent-child relationships again and again, but it should be noted that Node does actually support circular dependencies. The *loaded* boolean of the Module describes if all of the code from that module has been run yet - in the previous example, the server code had been fully run whereas the main code had not.
 
 This raises an important question. If not all the code from one module has loaded, then what happens if you create a circular dependency? To explore this, create a `moduleA.js` file with this:
 
@@ -236,7 +237,7 @@ console.log(mA.loadedValue);
 console.log(mA.notLoadedValue);
 ```
 
-If you run `node moduleA.js`, you will see that `123` and `undefined` are logged to the console. Node will share a partial exports object to any module that requires in the case of a circular dependencies.
+If you run `node moduleA.js`, you will see that `123` and `undefined` are logged to the console. Node will share a partial exports object to any module that requires it in the case of a circular dependencies.
 
 ## The event queue, event loop and call stack
 
@@ -252,7 +253,7 @@ But how do events like this work in Node? As you saw earlier in the architecture
 
 When running an asynchronous function on a timer or waiting on a response, Node uses its API (e.g. timers, emitters, wrappers around OS operations) to handle pushing items on to the *event queue* when needed.
 
-Create a folder called `event-loop` containing the following JavaScript file:
+Let's explore this. Create a folder called `event-loop` containing the following JavaScript file:
 ```javascript
 // messageLogger.js
 const logMessageWithDelay = (delay, msg, callback) => {
@@ -337,7 +338,9 @@ On every iteration, Node executes the following phases:
 * **check**: `setImmediate()` callbacks are invoked here.
 * **close callbacks**: some close callbacks, e.g. `socket.on('close', ...)`.
 
-The main advantage to using `setImmediate` over `setTimeout` is `setImmediate` will always be executed before any timers if scheduled within an I/O cycle, independently of how many timers are present. It's always recommended to use `setImmediate` if you want something to be executed on the next iteration (*tick*) of the event loop. Confusingly enough, there is also a `process.nextTick` method that does not execute on the next iteration of the event loop. It is actually processed independently of the phases in the event loop, after the current operation finishes and before the event loop continues - it should be used with caution.
+`setImmediate` is designed to execute a script once the current *poll* phase completes. `setTimeout` schedules a script to be run after a minmium threshold in ms has elapsed (note the use of the word minimum; the exact timing is not guaranteed).
+
+The main advantage to using `setImmediate` over `setTimeout` is `setImmediate` will always be executed before any timers if scheduled within an I/O cycle, independently of how many timers are present. So in the previous example, we were reading a file so `setImmediate` was called first in that case. It's always recommended to use `setImmediate` if you want something to be executed on the next iteration (*tick*) of the event loop. Confusingly enough, there is also a `process.nextTick` method that does not execute on the next iteration of the event loop. It is actually processed independently of the phases in the event loop, after the current operation finishes and before the event loop continues - it should be used with caution.
 
 # Creating a chat application
 
@@ -350,7 +353,7 @@ Start by creating a folder called `chat` and create the following JavaScript fil
 const net = require('net');
 ```
 
-The `net` module provides a way of creating TCP servers and TCP clients (*Transmission Control Protocol*). TCP works by streaming packets of data where rigorous checking and acknowledgement of delivery ensure reliable data (a brief summary of UDP vs TCP can be found [here](https://support.holmsecurity.com/hc/en-us/articles/212963869)).
+The `net` module provides a way of creating TCP servers and TCP clients (*Transmission Control Protocol*). Recall that TCP works by streaming packets of data where rigorous checking and acknowledgement of delivery ensure reliable data (a brief summary of UDP vs TCP can be found [here](https://support.holmsecurity.com/hc/en-us/articles/212963869)).
 
 The `createServer` method can be used to create the TCP server. Add the following to code to create a server listening on port 1337:
 
@@ -361,7 +364,7 @@ server.listen(1337);
 
 ## Events
 
-The `Server` is an instance of `EventEmitter`. This is a class within Node which is returned by the `events` module i.e. `const EventEmitter = require('events');`. Listeners (also extending `EventEmitter`) can listen for events and fire a callback, as well as emit events themselves. Add the following code to add a listener for the `connection` event which is fired whenever a client connects to the server. Note that a socket is one endpoint of a two-way communication link between two programs running on the network:
+The `Server` is an instance of `EventEmitter`. This is a class within Node which is returned by the `events` module i.e. `const EventEmitter = require('events');`. Listeners (also extending `EventEmitter`) can listen for events and fire a callback, as well as emit events themselves. Add the following code to add a listener for the `connection` event which is fired whenever a client connects to the server.
 
 ```javascript
 server.on('connection', socket => {
@@ -370,15 +373,22 @@ server.on('connection', socket => {
 });
 ```
 
-To test this code, press `Ctrl + \` to split the terminal in Visual Studio Code. In one session, run `node .\chat\server.js`. In the other, type the command
+A socket is one endpoint of a two-way communication link between two programs running on the network (so in this case, a client socket connecting to the server). To test this code, press `Ctrl + \` to split the terminal in Visual Studio Code. In one session, run the command:
+```bash
+node .\chat\server.js
+```
+In the other, run:
 ```bash
 telnet localhost 1337
 ```
-to connect to your server via TCP. You should see `Hello!` is displayed. To exit the Telnet session press `Ctrl + ]` and type `quit`. You will notice that an error is thrown in the server terminal. By default (server property `allowHalfOpen` is false) the socket will not automatically send a FIN packet indicating it has no more data to write to the server. Therefore, you must either change this boolean or listen for the server's `end` event that is fired whenever a client disconnects.
+You should see `Hello!` is displayed in the client terminal session, and `Client connected` in the server terminal session. To exit the Telnet session press `Ctrl + ]` and type `quit`, and press `Ctrl + C` for the Node session.
 
-Let's listen for the 'end' event so we can also add logging. You can also shorten the instantiation of the server so that a listener for the `connection` event is also added. The `listen` method also accepts a callback for its second parameter to fire on the `listening` event (emitted when the server has been bound):
+Let's listen for the 'end' event so we can also add logging for when a client disconnects. You can also shorten the instantiation of the server so that a listener for the `connection` event is also added. The `listen` method also accepts a callback for its second parameter to fire on the `listening` event (emitted when the server has been bound to the listening port). Replace the server code with the following:
 
 ```javascript
+// server.js
+const net = require('net');
+
 const server = require('net')
 .createServer(socket => {
     console.log('Client connected');
