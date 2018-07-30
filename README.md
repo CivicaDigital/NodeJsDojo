@@ -392,8 +392,6 @@ Let's listen for the 'end' event so we can also add logging for when a client di
 
 ```javascript
 // server.js
-const net = require('net');
-
 const server = require('net')
 .createServer(socket => {
     console.log('Client connected');
@@ -420,12 +418,12 @@ Npm consists of the [npm registry](https://npmjs.com) and the corresponding comm
 
 Quit any running terminal processes and run the following:
 ```bash
-npm install node-netcat
+npm install netcat
 
-yarn add node-netcat
+yarn add netcat
 ```
 
-A shorter version of the install command is `npm i ...`. From this command, the *node-netcat* package has been installed locally. [Netcat](https://en.wikipedia.org/wiki/Netcat) is a computer networking utility for reading from and writing to network connections using TCP or UDP. The *node-netcat* package can be used to implement Netcat-like functionality in Node.js, which we'll need for our chat application.
+A shorter version of the install command is `npm i ...`. From this command, the *netcat* package has been installed locally. [Netcat](https://en.wikipedia.org/wiki/Netcat) is a computer networking utility for reading from and writing to network connections using TCP or UDP. The *netcat* package can be used to implement Netcat-like functionality in Node.js, which we'll need for our chat application.
 
 ## What is a package?
 
@@ -439,7 +437,7 @@ When a package is installed locally, as in the previous example, a local `node_m
 ```json
 {
   "dependencies": {
-    "node-netcat": "^1.4.8"
+    "netcat": "^1.3.5"
   }
 }
 ```
@@ -460,7 +458,7 @@ If we wanted to [publish](https://docs.npmjs.com/cli/publish) our package to the
         "url" : "https://github.com/KeianBarton/xxxxx.git"
     },
     "dependencies" : {
-        "node-netcat": "^1.4.8"
+        "netcat": "^1.3.5"
     },
     "main" : "app/main.js"
 }
@@ -510,16 +508,16 @@ npm update
 yarn upgrade
 ```
 
-## Integrating node-netcat into the chat application
+## Integrating netcat into the chat application
 
-Now that `node-netcat` has been installed, it's time to use it in the application. Create a new JavaScript file as follows:
+Now that `netcat` has been installed, it's time to use it in the application. Create a new JavaScript file as follows:
 
 ```javascript
 // client.js
-const Netcat = require('node-netcat');
+const NetCatClient = require('netcat/client');
 const readline = require('readline');
 
-const client = Netcat.client(1337, 'localhost');
+const client = new NetCatClient();
 
 const rl = readline.createInterface({
     input: process.stdin
@@ -533,10 +531,10 @@ rl.on('line', (line) => {
     client.send(line);
 });
 
-client.start();
+client.addr('localhost').port(1337).connect();
 ```
 
-As mentioned previously, the `node-netcat` module can be used to create TCP applications, allowing us to connect to the TCP server. The [`readline` module](https://nodejs.org/api/readline.html), supplied with Node, provides an interface from reading data from a readable stream, one line at a time. The above code creates a client that connects to the server, then listens for the `data` event from the server to write to the client's command line. If the client writes a line of data and ends the line (e.g. by pressing Enter), then we listen for the `line` event to send that data across to the server.
+As mentioned previously, the `netcat` module can be used to create TCP applications, allowing us to connect to the TCP server. The [`readline` module](https://nodejs.org/api/readline.html), supplied with Node, provides an interface from reading data from a readable stream, one line at a time. The above code creates a client that connects to the server, then listens for the `data` event from the server to write to the client's command line. If the client writes a line of data and ends the line (e.g. by pressing Enter), then we listen for the `line` event to send that data across to the server.
 
 ## Introduction to streams
 
@@ -606,10 +604,10 @@ Back to our client code, we can see that we use streams to receive input data fr
 
 ```javascript
 // client.js
-const Netcat = require('node-netcat');
+const NetCatClient = require('netcat/client');
 const readline = require('readline');
 
-const client = Netcat.client(1337, 'localhost');
+const client = new NetCatClient();
 
 const rl = readline.createInterface({
     input: process.stdin
@@ -623,23 +621,23 @@ rl.on('line', (line) => {
     client.send(line);
 });
 
-client.start();
+client.addr('localhost').port(1337).connect();
 ```
 
-## Allowing messages back and forth on the chat app
+## Allowing users to message each other
 
-Let's build on our server code so that multiple users can see each others' messages. Replace the server code with the following, where we now listen for the data event. Try running 2 instances of `client.js` alongside `server.js` simultaneously and observe that messages can be sent and received (albeit anonymously):
+Let's build on our server code so that multiple users can message each other.
+
+Replace the server code with the following and try running 2 instances of `client.js` alongside `server.js` simultaneously:
 
 ```javascript
 // server.js
-const net = require('net');
-
 const server = require('net')
 .createServer(socket => {
     console.log('Client connected');
     socket.on('data', (data) => {
-        console.log(data.toString());
-        socket.write(`${data.toString()}\n`);
+        console.log(data);
+        socket.write(data);
     });
     socket.on('end', () => {
         console.log('Client disconnected');
@@ -650,23 +648,130 @@ const server = require('net')
 });
 ```
 
+There are a number of issues with the code we have so far:
+1. The message is logged as a Buffer object in the server, instead of a string. Messaging also may appear to be glitchy without clear end of lines.
+2. You should see that when either user sends a message, it is logged in the server process, but neither user can see each other's messages.
+3. Exiting a client session crashes the server.
+
+Let's solve these problems:
+1. Streaming messages correctly...
+
+[Buffer](https://nodejs.org/api/buffer.html) objects in Node are used for reading and manipulating streams of binary data. We can call the `toString()` method on such Buffer objects to convert them to their string equivalent for correct logging. Ensuring we pass the new line character ensures that each messages takes up a line when received by the client (which otherwise may cause the received data to leak into any new messages). Amend the server code as follows:
+
+```javascript
+socket.on('data', (data) => {
+    let msg = data.toString();
+    console.log(msg);
+    socket.write(`${msg}\n`);
+});
+```
+
+2. Ensuring other users receive messages...
+
+Define an array to hold our sockets and write any received message to each socket (other than the one writing the data). Give this a go and then make sure your code lines up like this one:
+```javascript
+// server.js
+let sockets = [];
+
+const server = require('net')
+.createServer(socket => {
+    sockets.push(socket);
+    console.log('Client connected');
+
+    socket.on('data', (data) => {
+        let msg = data.toString();
+        console.log(msg);
+        sockets.forEach( (s) => {
+            if (s !== socket) s.write(`${msg}\n`);
+        });
+    });
+
+    socket.on('end', () => {
+        sockets.splice(sockets.indexOf(socket), 1);
+        console.log('Client disconnected');
+    });
+})
+.listen(1337, () => {
+    console.log('Server bound');
+});
+```
+
+3. Clients disconnecting crashes the server
+
+TCP servers require clients to send a final message to close the connection. Since we are exiting our clients by pressing CTRL + C, the exit is immediate and the server never receives a message that the message is closed. Add the following to the bottom of your client code:
+
+```javascript
+process.on('SIGINT', () => {
+    client.close(() => { process.exit(); });
+});
+``` 
+
+## Improving our chat application
+
+Your chat application should now work fundamentally, but it can be improved. The following code showcases how the code can be evolved to to allow for name entry, and only broadcasting to those users who have set a name. Read through, copy and have a play with the following code:
+
+```javascript
+// server.js
+const port = 1337;
+const sockets = [];
+
+const server = require('net')
+.createServer(socket => {
+    sockets.push(socket);
+    socket.write(`Welcome! What is your name?\n`);
+
+    socket.on('data', data => {
+        let msg = data.toString().trim();
+        if (msg !== '') {
+            if (!socket.name) {
+                socket.name = data;
+                broadcast(`(${timestamp()}) ${socket.name} connected`);
+            } else {
+                broadcast(`(${timestamp()}) ${socket.name} : ${msg}`, socket);
+            }
+        }
+    });
+
+    socket.on('end', () => {
+        let leaver = socket.name;
+        sockets.splice(sockets.indexOf(socket), 1);
+        if (leaver) {
+            broadcast(`(${timestamp()}) ${leaver} disconnected`);
+        }
+    });
+})
+.listen(port, () => {
+    console.log(`(${timestamp()}) Server bound on port ${port}`);
+});
+
+timestamp = () => {
+    const now = new Date();
+    return `${now.getHours()}:${now.getMinutes()}`;
+};
+
+broadcast = (message, sender) => {
+    sockets.forEach( (socket) => {
+        // Don't broadcast to senders / people starting app
+        if (socket === sender || !socket.name) return;
+        socket.write(`${message}\n`);
+    });
+    console.log(message);
+};
+```
+
+For local networks, you should be able to connect to other user's servers using their external IP address (you can find your IP address by typing `ipconfig` into CMD) and connecting your client to e.g. xxx.xxx.xxx.xxx : 1337.
+
 ## More on requiring modules
 
-use with installing moment and go into more detail
+Bla bla bla - Install Moment, module caching, .json files for port
 
-## The require process and caching modules
+## Last thoughts on the chat application
 
----
----
----
+You should now have a working chat application, in which we have covered a lot of Node concepts. That said, there are a few remaining issues in this application. If you finish the rest of the dojo early, see if you can improve the following:
+* If user A starts typing a message and user B sends a message, user A's WIP message is lost.
+* Add a way to exit the app more gracefully e.g. if the user types 'EXIT'.
 
-You can listen for data back from the socket by listening to the `data` event. In Linux, you can use Netcat which will take each line 
-
----
----
----
-
- By tracking all connected sockets, you now have everything you need to create a basic chat server:
+## Complete code
 
 ```javascript
 // config.json
@@ -725,24 +830,28 @@ broadcast = (message, sender) => {
 };
 
 // client.js
-const Netcat = require('node-netcat');
-const client = Netcat.client(1337, 'localhost');
+const NetCatClient = require('netcat/client');
 const readline = require('readline');
 
+const client = new NetCatClient();
+
 const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
+    input: process.stdin
 });
 
 client.on('data', (data) => {
     process.stdout.write(data);
 });
 
-rl.on('line', (data) => {
-    client.send(data);
+rl.on('line', (line) => {
+    client.send(line);
 });
 
-client.start();
+client.addr('localhost').port(1337).connect();
+
+process.on('SIGINT', () => {
+    client.close(() => { process.exit(); });
+});
 ```
 
 ## Installing moment for better timekeeping
@@ -783,3 +892,4 @@ yarn config set registry "http://registry.npmjs.org/
 * https://docs.npmjs.com/cli/install
 * https://nodejs.org/api/stream.html
 * https://www.sitepoint.com/basics-node-js-streams/
+* https://nodejs.org/api/buffer.html
