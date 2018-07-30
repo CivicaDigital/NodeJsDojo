@@ -512,7 +512,7 @@ yarn upgrade
 
 ## Integrating node-netcat into the chat application
 
-Now that `node-netcat` has been installed, it's time to use it in the application. Create a new JavaScript file as follows, and we'll go through it bit by bit:
+Now that `node-netcat` has been installed, it's time to use it in the application. Create a new JavaScript file as follows:
 
 ```javascript
 // client.js
@@ -536,7 +536,119 @@ rl.on('line', (line) => {
 client.start();
 ```
 
-## Discuss streams in relation to process.in etc
+As mentioned previously, the `node-netcat` module can be used to create TCP applications, allowing us to connect to the TCP server. The [`readline` module](https://nodejs.org/api/readline.html), supplied with Node, provides an interface from reading data from a readable stream, one line at a time. The above code creates a client that connects to the server, then listens for the `data` event from the server to write to the client's command line. If the client writes a line of data and ends the line (e.g. by pressing Enter), then we listen for the `line` event to send that data across to the server.
+
+## Introduction to streams
+
+The previous code snippet introduced `process.stdin` and `process.stdout` used for reading from and writing to the console respectively (indeed `console.log(...)` in Node writes to `process.stdout` but with a newline at the end). These are examples of streams.
+
+Streams are essentially collections of data that might not be available all at once and do not have to be stored entirely in memory. They are instances of (and extensions to) the `EventEmitter` class, with an interface for receiving and writing data.
+
+One example for using streams might be if you would like to read data from a massive file in chunks, without needing to load the entire file into memory (which might end up blocking other code). Try creating a separate folder containing a large text file and the following JavaScript file:
+
+```javascript
+// stream-file-efficient.js
+const fs = require('fs');
+const stream = fs.createReadStream('./data.txt');
+
+stream.on('data', (data) => {
+    console.log(data.toString());
+})
+```
+
+The above code, when executing, would take up less memory than the following code (which could make a real performance difference for large files):
+```javascript
+// stream-file-inefficient.js
+const fs = require('fs');
+fs.readFile('./data.txt', (err, data) => {
+  if (err) throw err;
+  console.log(data.toString());
+});
+```
+
+## Types of streams
+
+There are four types of streams:
+* [Readable](https://nodejs.org/api/stream.html#stream_readable_streams)
+* [Writable](https://nodejs.org/api/stream.html#stream_writable_streams)
+* [Duplex](https://nodejs.org/api/stream.html#stream_duplex_and_transform_streams)
+* [Transform](https://nodejs.org/api/stream.html#stream_duplex_and_transform_streams)
+
+Readable streams are an abstraction for a *source* from which data is consumed. Writable streams are an abstraction for a *destination* to which data is written. Duplex streams are both readable and writable. Transform streams are duplex streams that can transfomr data as it's written/read.
+
+We can pipe data from a readable stream `src` to a writeable stream `dst`.
+```javascript
+src.pipe(dst);
+```
+
+The following example pipes effectively copies one text file to another, whilst using a transform stream to report progress for the copying process (by writing to `process.stdout`. Try running this code with a particularly big text file for `file1.txt` and observe the output:
+
+```javascript
+// file-copy-streams.js
+const fs = require('fs');
+const { Transform } = require('stream');
+
+const progress = new Transform({
+    transform(chunk, encoding, callback) {
+        process.stdout.write('.');
+        callback(null, chunk);
+    }
+});
+
+fs.createReadStream('./file1.txt')
+    .pipe(progress)
+    .pipe(fs.createWriteStream('./file2.txt'));
+```
+
+## Understanding our client code
+
+Back to our client code, we can see that we use streams to receive input data from `process.stdin` and output it to the server. Any received data is written to `process.stdout`. One thing to notice in the code is how we haven't defined the `readline` interface using an output to `process.stdout` - this would create a bug whereby any data received from the server would be output to the command line, which would be read back in and sent to the server and looped back and forth:
+
+```javascript
+// client.js
+const Netcat = require('node-netcat');
+const readline = require('readline');
+
+const client = Netcat.client(1337, 'localhost');
+
+const rl = readline.createInterface({
+    input: process.stdin
+});
+
+client.on('data', (data) => {
+    process.stdout.write(data);
+});
+
+rl.on('line', (line) => {
+    client.send(line);
+});
+
+client.start();
+```
+
+## Allowing messages back and forth on the chat app
+
+Let's build on our server code so that multiple users can see each others' messages. Replace the server code with the following, where we now listen for the data event. Try running 2 instances of `client.js` alongside `server.js` simultaneously and observe that messages can be sent and received (albeit anonymously):
+
+```javascript
+// server.js
+const net = require('net');
+
+const server = require('net')
+.createServer(socket => {
+    console.log('Client connected');
+    socket.on('data', (data) => {
+        console.log(data.toString());
+        socket.write(`${data.toString()}\n`);
+    });
+    socket.on('end', () => {
+        console.log('Client disconnected');
+    });
+})
+.listen(1337, () => {
+    console.log('Server bound');
+});
+```
 
 ## More on requiring modules
 
@@ -669,3 +781,5 @@ yarn config set registry "http://registry.npmjs.org/
 * https://gist.github.com/creationix/707146
 * https://www.keycdn.com/blog/npm-vs-yarn/
 * https://docs.npmjs.com/cli/install
+* https://nodejs.org/api/stream.html
+* https://www.sitepoint.com/basics-node-js-streams/
