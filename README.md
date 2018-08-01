@@ -248,49 +248,49 @@ If you run `node moduleA.js`, you will see that `123` and `undefined` are logged
 
 Time for your first quiz! You can find the answers in the appendix at the end of this training course.
 
-1. 
+1. Which of these modules is included in Node.js and can be used to create a web server?
 
 ```javascript
-A. 
-B. 
-C. 
-D. 
+A. server
+B. http
+C. web
+D. express
 ```
 
-2. 
+2. Which of these commands can be used to inspect the properties available on the `Module` object?
 
 ```javascript
-A. 
-B. 
-C. 
-D. 
+A. node -p "process.module"
+B. node -p "__module"
+C. node -p "module"
+D. node -p "require('module').wrapper"
 ```
 
-3. 
+3. Which of these lines of code should be used to export a function to be required in other modules?
 
 ```javascript
-A. 
-B. 
-C. 
-D. 
+A. module.exports = () => { console.log("Hi!"); }
+B. exports = () => { console.log("Hi!"); }
+C. global.sayHi = () => { console.log("Hi!"); }
+D. export function SayHi() { console.log("Hi!"); }
 ```
 
-4. 
+4. Which of these commands allow you to enter Node's REPL shell?
 
 ```javascript
-A. 
-B. 
-C. 
-D. 
+A. node -p "repl"
+B. node -e "process.start(repl)"
+C. node
+D. node -p "require('repl')"
 ```
 
-5. 
+5. What is the global process object used for?
 
-```javascript
-A. 
-B. 
-C. 
-D. 
+```
+A. Used to launch multiple Node.js processes to take advantage of multi-core systems
+B. Defines an API for interacting with the file system and OS
+C. Manages the performance and logging of the application 
+D. Provides information about, and control over, the current Node.js process
 ```
 
 # Events and Asynchronous Code
@@ -977,15 +977,84 @@ You should now have a working chat application, in which we have covered a lot o
 
 # Pop quiz #2
 
+1. What are the steps that Node goes through to resolve and execute a module that is required with the `require()` function?
 
+```
+A. Resolve file -> File type -> Wrap -> Execute -> Cache
+B. Resolve file -> File type -> Execute -> Wrap -> Cache
+D. File type -> Resolve file -> Wrap -> Execute -> Cache
+C. File type -> Resolve file -> Execute -> Wrap -> Cache
+```
+
+2. Which of the following events is emitted by the `process` object when the Node.js event loop has no additional work to perform?
+
+```javascript
+A. SIGINT
+B. exit
+C. uncaughtException
+D. warning
+```
+
+3. A package dependency is added to `package.json` with the following version range `^1.2.3`. The package itself has versions `1.2.3,  1.2.4,  1.3.1,  2.0.0` available for download. When running `npm update`, what version of the package will be installed?
+
+```javascript
+A. 1.2.3
+B. 1.2.4
+C. 1.3.1
+D. 2.0.0
+```
+
+4. What method can be used to send the output of a Readable stream to a Writable stream?
+
+```javascript
+A. pipe
+B. write
+C. send
+D. flow
+```
+
+5. What is the main difference between Node's `setImmediate` and `setTimeout` APIs?
+
+```
+A. They are the same; both can invoke a function after a minimum guaranteed delay
+B. Functions called by setImmediate are always invoked before those called in setTimeout
+C. setImmediate will execute before setTimeout in an I/O cycle
+D. setImmediate functions are processed independently of the phases in the event loop
+```
 
 # Creating a scalable web server
 
-If time
+A single instance of Node.js runs in a single thread.
+https://nodejs.org/api/cluster.html 
 
 # Pop quiz #3
 
+1. 
 
+```javascript
+A. 
+B. 
+C. 
+D. 
+```
+
+2. 
+
+```javascript
+A. 
+B. 
+C. 
+D. 
+```
+
+3. 
+
+```javascript
+A. 
+B. 
+C. 
+D. 
+```
 
 # Appendix
 
@@ -1095,25 +1164,23 @@ process.on('SIGINT', () => {
 ## Pop quiz answers
 
 ### Quiz 1
-1. A
-2. A
+1. B
+2. C
 3. A
-4. A
-5. A
+4. C
+5. D
 
 ### Quiz 2
 1. A
-2. A
-3. A
+2. B
+3. C
 4. A
-5. A
+5. C
 
 ### Quiz 3
-1. A
-2. A
-3. A
-4. A
-5. A
+1. 
+2. 
+3. 
 
 ## References
 
