@@ -840,7 +840,27 @@ You should now have a working chat application, in which we have covered a lot o
 * Add a way to exit the app more gracefully e.g. if the user types 'EXIT'.
 * Add a command for a user to stream the contents of a text file to other users.
 
-## Complete code
+## Web server and making use of clusters
+
+If time
+
+# Appendix
+
+## Proxy issues and CNTLM
+
+Some users have had issues downloading and installing npm packages with the corporate proxy. Try using the following commands in combination with running CNTLM via the `start proxy` bat file. For the Bath office, this can be downloaded from `Y:\CloudVault\Pinky\Applications\Freeware\CNTLM` where the Y drive is mapped to `\\iplbath.com`.
+
+```bash
+npm config set proxy http://127.0.0.1:3128
+npm config set https-proxy http://127.0.0.1:3128
+npm config set registry "http://registry.npmjs.org/"
+
+yarn config set proxy http://127.0.0.1:3128
+yarn config set https-proxy http://127.0.0.1:3128
+yarn config set registry "http://registry.npmjs.org/
+```
+
+## Complete chat application code
 
 ```javascript
 // config.json
@@ -925,30 +945,6 @@ client.addr(ADDRESS).port(PORT).connect();
 process.on('SIGINT', () => {
     client.close(() => { process.exit(); });
 });
-```
-
-## Installing moment for better timekeeping
-
-## NPM and how to publish your own module
-
-## Web server and making use of clusters
-
-If time
-
-# Appendix
-
-## Proxy issues and CNTLM
-
-Some users have had issues downloading and installing npm packages with the corporate proxy. Try using the following commands in combination with running CNTLM via the `start proxy` bat file. For the Bath office, this can be downloaded from `Y:\CloudVault\Pinky\Applications\Freeware\CNTLM` where the Y drive is mapped to `\\iplbath.com`.
-
-```bash
-npm config set proxy http://127.0.0.1:3128
-npm config set https-proxy http://127.0.0.1:3128
-npm config set registry "http://registry.npmjs.org/"
-
-yarn config set proxy http://127.0.0.1:3128
-yarn config set https-proxy http://127.0.0.1:3128
-yarn config set registry "http://registry.npmjs.org/
 ```
 
 ## References
