@@ -712,7 +712,7 @@ Your chat application should now work fundamentally, but it can be improved. The
 
 ```javascript
 // server.js
-const port = 1337;
+const PORT = 1337;
 const sockets = [];
 
 const server = require('net')
@@ -740,8 +740,8 @@ const server = require('net')
         }
     });
 })
-.listen(port, () => {
-    console.log(`(${timestamp()}) Server bound on port ${port}`);
+.listen(PORT, () => {
+    console.log(`(${timestamp()}) Server bound on port ${PORT}`);
 });
 
 timestamp = () => {
@@ -759,44 +759,119 @@ broadcast = (message, sender) => {
 };
 ```
 
-For local networks, you should be able to connect to other user's servers using their external IP address (you can find your IP address by typing `ipconfig` into CMD) and connecting your client to e.g. xxx.xxx.xxx.xxx : 1337.
+For local networks, you should be able to connect to other user's servers using their external IP address (you can find your IP address by typing `ipconfig` into CMD) and connecting your client to e.g. `xxx.xxx.xxx.xxx:1337`.
 
-## More on requiring modules
+There are two final improvements that we will make to our chat application:
 
-Bla bla bla - Install Moment, module caching, .json files for port
+1. Removing hardcoded connection information
+2. Making better, more reliable, timestamps using Moment.js
+
+For both of these we will make use of module requiring.
+
+## Overview on requiring modules
+
+You have already used basic requiring for importing modules. Recall that the `require` function is available on the global object as a reference to the current module's own `require()` function (which is stored in the module wrapper function arguments).
+
+The `require` function can be overwritten if we didn't want to return the module exports object, which might be useful for testing purposes e.g. mocking out a module:
+
+```javascript
+// overwrite-require.js
+require = function() {
+    return { name : "mocked module", val: 1 };
+};
+
+const fs = require('fs');
+console.log(fs);  // the mocked module is returned
+```
+
+When requiring a module, Node will go through a series of steps to identify a module. It will look through the paths property of the module starting from the first path onwards looking to find the module file. Try adding the following files into a folder and observe the paths output:
+
+```javascript
+// main.js
+const w = require('example');
+console.log(w.paths);
+
+// example.js
+module.exports = module;
+```
+
+For non-core modules and not already identified modules, Node will look in the current directory for any files matching the name and look up parent directories to the root directory (thereafter throwing an error). Once a module has been resolved, Node will look to that module file path whenever it is needed. Even if we create another module with the same file name in a different directory, Node will use that file unless it is deleted, after which it will repeat this path searching process.
+
+To resolve a file path, without executing that module, we can use the resolve method:
+```javascript
+const w = require.resolve('example');
+```
+
+## Requiring JS and non-JS files
+
+The `require` function can also be used to load JSON and C++ files, as well as JavaScript files. To remove the repeated connection information from our chat application, let's store this information in a `config.json` file:
+
+```json
+{
+    "ADDRESS" : "localhost",
+    "PORT": 1337
+}
+```
+
+Node would try to load `config.js` first, then `config.json` (and `config.node` [which can be compiled from a C++ file](https://nodejs.org/api/addons.html)).
+
+Let's now change all references to our hardcoded address and port to make use of this JSON file:
+
+```javascript
+// server.js
+const config = require('config');
+const PORT = config.PORT;
+
+// client.js
+const ADDRESS = config.ADDRESS;
+const PORT = config.PORT;
+// ...
+client.addr(ADDRESS).port(PORT).connect();
+```
+
+## Wrapping and caching modules
+
+## Incorporating Moment.js
 
 ## Last thoughts on the chat application
 
 You should now have a working chat application, in which we have covered a lot of Node concepts. That said, there are a few remaining issues in this application. If you finish the rest of the dojo early, see if you can improve the following:
 * If user A starts typing a message and user B sends a message, user A's WIP message is lost.
 * Add a way to exit the app more gracefully e.g. if the user types 'EXIT'.
+* Add a command for a user to stream the contents of a text file to other users.
 
 ## Complete code
 
 ```javascript
 // config.json
 {
-    "port": 1337
+    "ADDRESS" : "localhost",
+    "PORT": 1337
 }
 
 // server.js
-const port = require('./config').port;
+const config = require('config');
+const PORT = config.PORT;
+
 const sockets = [];
 
 const server = require('net')
 .createServer(socket => {
     sockets.push(socket);
     socket.write(`Welcome! What is your name?\n`);
+
     socket.on('data', data => {
-        if (data.toString().trim() !== '') {
+        let msg = data.toString().trim();
+        if (msg !== '') {
             if (!socket.name) {
                 socket.name = data;
                 broadcast(`(${timestamp()}) ${socket.name} connected`);
             } else {
-                broadcast(`(${timestamp()}) ${socket.name} : ${data.toString().trim()}`, socket);
+                broadcast(`(${timestamp()}) ${socket.name} : ${msg}`, socket);
             }
         }
     });
+
     socket.on('end', () => {
         let leaver = socket.name;
         sockets.splice(sockets.indexOf(socket), 1);
@@ -805,33 +880,31 @@ const server = require('net')
         }
     });
 })
-.listen(port, () => {
-    console.log(`(${timestamp()}) Server bound on port ${port}`);
+.listen(PORT, () => {
+    console.log(`(${timestamp()}) Server bound on port ${PORT}`);
 });
 
 timestamp = () => {
-    // consider moment.js for more accurate timekeeping
     const now = new Date();
     return `${now.getHours()}:${now.getMinutes()}`;
 };
 
 broadcast = (message, sender) => {
-    let receivers = 0;
     sockets.forEach( (socket) => {
         // Don't broadcast to senders / people starting app
         if (socket === sender || !socket.name) return;
         socket.write(`${message}\n`);
-        receivers++;
     });
     console.log(message);
-    if(receivers > 0) {
-        console.log(`(${timestamp()}) Broadcasted message to ${receivers} clients`);
-    }
 };
 
 // client.js
 const NetCatClient = require('netcat/client');
 const readline = require('readline');
+const config = require('config');
+
+const ADDRESS = config.ADDRESS;
+const PORT = config.PORT;
 
 const client = new NetCatClient();
 
@@ -847,7 +920,7 @@ rl.on('line', (line) => {
     client.send(line);
 });
 
-client.addr('localhost').port(1337).connect();
+client.addr(ADDRESS).port(PORT).connect();
 
 process.on('SIGINT', () => {
     client.close(() => { process.exit(); });
@@ -893,3 +966,4 @@ yarn config set registry "http://registry.npmjs.org/
 * https://nodejs.org/api/stream.html
 * https://www.sitepoint.com/basics-node-js-streams/
 * https://nodejs.org/api/buffer.html
+* https://nodejs.org/api/addons.html
