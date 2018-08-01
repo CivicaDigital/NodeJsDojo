@@ -244,6 +244,57 @@ console.log(mA.notLoadedValue);
 
 If you run `node moduleA.js`, you will see that `123` and `undefined` are logged to the console. Node will share a partial exports object to any module that requires it in the case of a circular dependencies.
 
+# Pop quiz #1
+
+Time for your first quiz! You can find the answers in the appendix at the end of this training course.
+
+1. 
+
+```javascript
+A. 
+B. 
+C. 
+D. 
+```
+
+2. 
+
+```javascript
+A. 
+B. 
+C. 
+D. 
+```
+
+3. 
+
+```javascript
+A. 
+B. 
+C. 
+D. 
+```
+
+4. 
+
+```javascript
+A. 
+B. 
+C. 
+D. 
+```
+
+5. 
+
+```javascript
+A. 
+B. 
+C. 
+D. 
+```
+
+# Events and Asynchronous Code
+
 ## The event queue, event loop and call stack
 
 Node is described as "*an asynchronous event driven JavaScript runtime*". So far, you've seen one example of a Node event in the server example:
@@ -764,7 +815,7 @@ For local networks, you should be able to connect to other user's servers using 
 There are two final improvements that we will make to our chat application:
 
 1. Removing hardcoded connection information
-2. Making better, more reliable, timestamps using Moment.js
+2. Making better, more reliable timestamps using Moment.js
 
 For both of these we will make use of module requiring.
 
@@ -788,7 +839,7 @@ When requiring a module, Node will go through a series of steps to identify a mo
 
 ```javascript
 // main.js
-const w = require('example');
+const w = require('./example');
 console.log(w.paths);
 
 // example.js
@@ -798,8 +849,9 @@ module.exports = module;
 For non-core modules and not already identified modules, Node will look in the current directory for any files matching the name and look up parent directories to the root directory (thereafter throwing an error). Once a module has been resolved, Node will look to that module file path whenever it is needed. Even if we create another module with the same file name in a different directory, Node will use that file unless it is deleted, after which it will repeat this path searching process.
 
 To resolve a file path, without executing that module, we can use the resolve method:
+
 ```javascript
-const w = require.resolve('example');
+const w = require.resolve('./example');
 ```
 
 ## Requiring JS and non-JS files
@@ -819,19 +871,102 @@ Let's now change all references to our hardcoded address and port to make use of
 
 ```javascript
 // server.js
-const config = require('config');
+const config = require('./config');
 const PORT = config.PORT;
 
 // client.js
 const ADDRESS = config.ADDRESS;
 const PORT = config.PORT;
-// ...
+
+/*
+    ...
+*/
+
 client.addr(ADDRESS).port(PORT).connect();
 ```
 
-## Wrapping and caching modules
+## Caching modules
+
+After files are resolved during the require process, Node then wraps the module into a wrapper function as discussed earlier and executes the code. The final step of this process is for Node to cache the module so that it does not need to be reloaded repeatedly whenever it is needed.
+
+Create the following JavaScript files in the same folder to explore this concept further:
+
+```javascript
+// main.js
+require('./cached');
+require('./cached');
+
+// cached.js
+console.log("Hi!");
+```
+
+Notice when running `main.js` that "Hi!" is only logged to the console once. This is because Node caches the file so it does not need to be reloaded (and re-excuted). The more efficient solution for rerunning the code is exporting the necessary code in an executable function:
+
+```javascript
+// main.js
+require('./cached')();
+require('./cached')();
+
+// cached.js
+module.exports = () => { console.log("Hi!") };
+```
+
+We can access the cache (and delete from cache if needed) as follows:
+```javascript
+// main.js
+require('./cached');
+console.log(require.cache);
+delete require.cache['C:\\Projects\\NodeJSDojo\\require\\cached.js'];
+require('./cached');
+
+// cached.js
+console.log("Hi!");
+```
+
+In the above code snippet you should now see that "Hi!" is logged to the console twice, though the previous exports method is more efficient.
 
 ## Incorporating Moment.js
+
+Moment is a popular package for parsing, validating, manipulating, and displaying dates and times in JavaScript. Whilst our previous `timestamp` function may be able reasonable for our chat application, Moment can give more accurate dates/times by taking into account timezones and proper formatting. In this simple scenario we're probably overengineering the solution, but it's useful to see some of the functionality of Moment.js (*feel free to skip this section for more Node related content*).
+
+Let's install the Moment package as follows:
+
+```bash
+npm install moment
+
+yarn add moment
+```
+
+Now require Moment and amend your `timestamp` function as follows:
+```javascript
+// server.js
+const moment = require('moment');
+
+/*
+    ...
+*/
+
+timestamp = () => {
+    return moment().format('HH:mm');
+};
+```
+
+Our code now looks cleaner and is much more flexible for adjusting to different time zones and cultures, for example try running the server with the following code to see times displayed in French:
+
+```javascript
+const moment = require('moment');
+moment.locale('fr');
+
+/*
+    ...
+*/
+
+timestamp = () => {
+    return moment().format('LLL');
+};
+```
+
+Have a look at the [Moment.js](https://momentjs.com/) home page for a list of different commands and display settings, with interactive controls to showcase different time and date formats in different locales.
 
 ## Last thoughts on the chat application
 
@@ -840,9 +975,17 @@ You should now have a working chat application, in which we have covered a lot o
 * Add a way to exit the app more gracefully e.g. if the user types 'EXIT'.
 * Add a command for a user to stream the contents of a text file to other users.
 
-## Web server and making use of clusters
+# Pop quiz #2
+
+
+
+# Creating a scalable web server
 
 If time
+
+# Pop quiz #3
+
+
 
 # Appendix
 
@@ -870,8 +1013,11 @@ yarn config set registry "http://registry.npmjs.org/
 }
 
 // server.js
-const config = require('config');
+const config = require('./config');
 const PORT = config.PORT;
+
+const moment = require('moment');
+moment.locale('en');
 
 const sockets = [];
 
@@ -905,8 +1051,7 @@ const server = require('net')
 });
 
 timestamp = () => {
-    const now = new Date();
-    return `${now.getHours()}:${now.getMinutes()}`;
+    return moment().format('LT');
 };
 
 broadcast = (message, sender) => {
@@ -947,6 +1092,29 @@ process.on('SIGINT', () => {
 });
 ```
 
+## Pop quiz answers
+
+### Quiz 1
+1. A
+2. A
+3. A
+4. A
+5. A
+
+### Quiz 2
+1. A
+2. A
+3. A
+4. A
+5. A
+
+### Quiz 3
+1. A
+2. A
+3. A
+4. A
+5. A
+
 ## References
 
 * https://medium.freecodecamp.org/node-js-module-exports-vs-exports-ec7e254d63ac
@@ -963,3 +1131,4 @@ process.on('SIGINT', () => {
 * https://www.sitepoint.com/basics-node-js-streams/
 * https://nodejs.org/api/buffer.html
 * https://nodejs.org/api/addons.html
+* https://momentjs.com/
