@@ -4,8 +4,6 @@ Welcome to this Node.js dojo, or *NoJo*. In this tutorial, you will learn the ba
 
 ![Node.js Logo](./images/0-NodeLogo.png)
 
-# Introduction
-
 ## Prerequisites
 
 To follow along, you will need to install the following software on your local machine:
@@ -40,9 +38,11 @@ node --version
 ```
 You should see a version number in the format of `v8.x.x`
 
-# What actually is Node?
+# What is Node?
 
 Put simply, Node is a free, open source, cross-platform server environment. It runs in a single thread, and uses non-blocking, asynchronous programming so it can handle multiple requests simultaneously via events. It is fundamentally a JavaScript runtime environment, but is a lot more than just JavaScript - there is also a lot of C++ and C behind the scenes!
+
+## Node's architecture
 
 Here is a general (simplified) layout of Node's architecture:
 
@@ -408,6 +408,8 @@ Start by creating a folder called `chat` and create the following JavaScript fil
 // server.js
 const net = require('net');
 ```
+
+## The net module
 
 The `net` module provides a way of creating TCP servers and TCP clients (*Transmission Control Protocol*). Recall that TCP works by streaming packets of data where rigorous checking and acknowledgement of delivery ensure reliable data (a brief summary of UDP vs TCP can be found [here](https://support.holmsecurity.com/hc/en-us/articles/212963869)).
 
@@ -810,7 +812,13 @@ broadcast = (message, sender) => {
 };
 ```
 
-For local networks, you should be able to connect to other user's servers using their external IP address (you can find your IP address by typing `ipconfig` into CMD) and connecting your client to e.g. `xxx.xxx.xxx.xxx:1337`.
+For local networks, you should be able to connect to other user's servers using their local IP address (you can find this in Node by using the `os` module which provides a number of operating system-related utility methods):
+
+```bash
+node -p "require('os').networkInterfaces()['Ethernet 2'].filter(n => n.address.startsWith('10'))[0].address"
+```
+
+Give this a try by connecting your client to another IP address (remembering to include the port e.g. `10.44.69.252:1337`).
 
 There are two final improvements that we will make to our chat application:
 
@@ -977,6 +985,8 @@ You should now have a working chat application, in which we have covered a lot o
 
 # Pop quiz #2
 
+Time for your second quiz! You can find the answers in the appendix at the end of this training course.
+
 1. What are the steps that Node goes through to resolve and execute a module that is required with the `require()` function?
 
 ```
@@ -1024,8 +1034,107 @@ D. setImmediate functions are processed independently of the phases in the event
 
 # Creating a scalable web server
 
-A single instance of Node.js runs in a single thread.
+In this section we will create a scalable web server that can handle simultaneous requests by implementing load balancing via Node's `cluster` module.
+
+## Revisiting HTTP servers
+
+We have already seen the code for a basic HTTP server:
+
+```javascript
+// server.js
+const server = require('http').createServer();
+
+server.on('request', (req, res) => {
+    res.end('Hello world\n');
+}).listen(8000);
+```
+
+There are five major classes in Node's [http](https://nodejs.org/api/http.html) module:
+
+* `http.Agent` - Responsible for managing connection persistence and reuse for HTTP clients. It maintains a queue of pending requests for a given host and port, as well as a pool of sockets to be used (or re-used) for client connections.
+* `http.ClientRequest` - Returned from `http.request()`, representing an in-progress request.
+* `http.Server` - Inherits from `net.server` so is an event emitter - represents the server itself.
+* `http.ServerResponse` - Created internally by a HTTP server - the response passed as a second parameter to `request` events.
+* `http.IncomingMessage` - Created by `http.Server` or `http.ClientRequest` and is passed as the first paramter to `request` events.
+
+In our previous example, `req` is an instance of `http.IncomingMessage` and `res` is an instance of `http.ServerResponse`, and are likely to be the main classes you will work with.
+
+## Routing
+
+`http.IncomingMessage` has the useful `url` property which returns the request's URL string. We can use this to create routing for our web server:
+
+```javascript
+// routing.js
+const server = require('http').createServer();
+
+server.on('request', (req, res) => {
+    switch (req.url) {
+        case '/home':
+            return res.end('Welcome home!');
+        case '/about':
+            return res.end('Node example');
+        case '/':
+            // 301 - Moved Permanently
+            res.writeHead(301, { 'Location': '/home' });
+            return res.end();
+        default:
+            // 404 - Not Found
+            res.writeHead(404);
+            res.end();
+    }
+}).listen(8000);
+```
+
+Try running this and navigating to `localhost:8000` and `localhost:8000/about` in your browser.
+
+As a side-note, the `http` module contains a handy collection of all the standard HTTP response status codes with corresponding descriptions if you wanted to lookup what 301, 404 corresponds to:
+```bash
+node -p "require('http').STATUS_CODES"
+```
+
+## Blocking web requests
+
+A single instance of Node.js runs in a single thread, and its event loop handles its asynchronous capabilities. This does mean though that if a server has to handle a request which requires long processing, other requests will be blocked. Let's adapt our server example to demonstrate this:
+
+```javascript
+// blocking-server.js
+const lengthyProcess = () => {
+    let data = new Array(Math.pow(10, 8));
+    for (let i = 0; i < data.length; i++) {
+        data[i] = i;
+    }
+    return data;
+};
+
+const server = require('http').createServer();
+server.on('request', (req, res) => {
+    switch (req.url) {
+        case '/compute':
+            const data = lengthyProcess();
+            return res.end(`Computed ${data.length} items`);
+        case '/':
+            res.writeHead(301, { 'Location': '/compute' });
+            return res.end();
+        default:
+            res.writeHead(404);
+            res.end();
+    }
+}).listen(8000);
+```
+
+Try running this server and opening the example in two or three tabs at the same time. You should find the second and third tab only finish loading after the previous is finished i.e. requests are blocked - not good!
+
+## Child Processes
+
+Spawn fork exec execfile
+
+## Non-blocking server
+
+## Load balancing our server
+
 https://nodejs.org/api/cluster.html 
+
+## Incorporating chat application into scalable web server
 
 # Pop quiz #3
 
@@ -1199,3 +1308,5 @@ process.on('SIGINT', () => {
 * https://nodejs.org/api/buffer.html
 * https://nodejs.org/api/addons.html
 * https://momentjs.com/
+* https://nodejs.org/api/http.html
+* https://staxmanade.com/2016/07/easily-simulate-slow-async-calls-using-javascript-async-await/
