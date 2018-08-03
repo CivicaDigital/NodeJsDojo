@@ -1165,6 +1165,12 @@ C.
 D. 
 ```
 
+# Course outro
+
+You did it! You now know the basics of Node.js and have explored many of its features. The next step would be to have a play with some of Node's popular packages such as [Express](https://expressjs.com/), [Mocha](https://mochajs.org/) and [Angular](https://angular.io/) to build your own web application using Node.
+
+If you have found this particularly useful, any feedback, praise and/or [LinkedIn recommendations](https://uk.linkedin.com/in/keianbarton) you could give would be very much appreciated. Thanks!
+
 # Appendix
 
 ## Proxy issues and CNTLM
@@ -1269,6 +1275,8 @@ process.on('SIGINT', () => {
     client.close(() => { process.exit(); });
 });
 ```
+
+## Complete web server application code
 
 ## Pop quiz answers
 
