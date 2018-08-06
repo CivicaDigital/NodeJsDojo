@@ -1145,20 +1145,14 @@ const { exec, execFile } = require('child_process');
 
 const childExec = exec('"child example.bat" Hello', { cwd: __dirname },
     (err, stdout, stderr) => {
-        if (err) console.log(err);
-});
-
-childExec.stdout.on('data', (data) => {
-    process.stdout.write(data);
+        if (err) process.stdout.write(stderr);
+        process.stdout.write(stdout);
 });
 
 const childExecFile = execFile('child example.bat', ['Hello'], { cwd: __dirname },
     (err, stdout, stderr) => {
-        if (err) console.log(err);
-});
-
-childExecFile.stdout.on('data', (data) => {
-    process.stdout.write(data);
+        if (err) process.stdout.write(stderr);
+        process.stdout.write(stdout);
 });
 ```
 
@@ -1167,7 +1161,15 @@ childExecFile.stdout.on('data', (data) => {
 @echo %1 world!
 ```
 
-A few things to note in the above code. In both examples, the "Hello" argument is passed down to the file to be executed. Double quotes are used so that spaces in path are not interpreted as multiple arguments. We specify the working directory in which to execute the child process from to be the directory of the current Node module. This is useful if we wanted to run our Node file from a different directory e.g. `node child/parent.js`. Finally, whilst both examples look the same, the main difference is that `execFile` directly opens the file, whilst `exec` spawns a shell (`cmd.exe` in the case of Windows) in the background in which to execute the command.
+There are a number of things to note in the above code. In both examples, the "Hello" argument is passed down to the file to be executed. Double quotes are used so that spaces in path are not interpreted as multiple arguments. We specify the working directory in which to execute the child process from to be the directory of the current Node module. This is useful if we wanted to run our Node file from a different directory e.g. `node child/parent.js`. The callback is called when the process terminates, so if we wanted to stream data *as it was executing*, we could add a listener to the stream:
+
+```javascript
+childExec.stdout.on('data', (data) => {
+    process.stdout.write(data);
+});
+```
+
+Finally, whilst both examples look the same, the main difference is that `execFile` directly opens the file, whilst `exec` spawns a shell in the background in which to execute the command (`cmd.exe` in the case of Windows).
 
 ## `fork` and `spawn`
 
