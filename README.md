@@ -1383,11 +1383,13 @@ The `exitedAfterDisconnect` property of the `Worker` class distinguishes between
 process.stdout.write(`Starting server on process ${process.pid}\n`);
 ```
 
-![Killing a Node cluster worker](./images/4-KillingNodeProcess.png)
-
 Now try re-running the server (`cluster.js`), and monitor the processes in Task Manager -> Details. Kill one of the `node.exe` processes with a corresponding PID given in the cluster logging by right clicking and selecting "End task". Observe the cluster logging as the worker is magically restarted!
 
+![Killing a Node cluster worker](./images/4-KillingNodeProcess.png)
+
 ## Incorporating chat application into scalable web server
+
+We will now finally attempt to create a scalable web server that users can chat on, combining everything we've learnt in this course.
 
 # Pop quiz #3
 
