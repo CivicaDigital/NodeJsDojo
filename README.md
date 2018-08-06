@@ -576,7 +576,7 @@ const rl = readline.createInterface({
     input: process.stdin
 });
 
-client.on('data', (data) => {
+client.on('data', data => {
     process.stdout.write(data);
 });
 
@@ -602,7 +602,7 @@ One example for using streams might be if you would like to read data from a mas
 const fs = require('fs');
 const stream = fs.createReadStream('./data.txt');
 
-stream.on('data', (data) => {
+stream.on('data', data => {
     console.log(data.toString());
 })
 ```
@@ -666,7 +666,7 @@ const rl = readline.createInterface({
     input: process.stdin
 });
 
-client.on('data', (data) => {
+client.on('data', data => {
     process.stdout.write(data);
 });
 
@@ -688,7 +688,7 @@ Replace the server code with the following and try running 2 instances of `clien
 const server = require('net')
 .createServer(socket => {
     console.log('Client connected');
-    socket.on('data', (data) => {
+    socket.on('data', data => {
         console.log(data);
         socket.write(data);
     });
@@ -712,7 +712,7 @@ Let's solve these problems:
 [Buffer](https://nodejs.org/api/buffer.html) objects in Node are used for reading and manipulating streams of binary data. We can call the `toString()` method on such Buffer objects to convert them to their string equivalent for correct logging. Ensuring we pass the new line character ensures that each messages takes up a line when received by the client (which otherwise may cause the received data to leak into any new messages). Amend the server code as follows:
 
 ```javascript
-socket.on('data', (data) => {
+socket.on('data', data => {
     let msg = data.toString();
     console.log(msg);
     socket.write(`${msg}\n`);
@@ -731,7 +731,7 @@ const server = require('net')
     sockets.push(socket);
     console.log('Client connected');
 
-    socket.on('data', (data) => {
+    socket.on('data', data => {
         let msg = data.toString();
         console.log(msg);
         sockets.forEach( (s) => {
@@ -1103,7 +1103,7 @@ const lengthyProcess = () => {
     for (let i = 0; i < data.length; i++) {
         data[i] = i;
     }
-    return data;
+    return data.length;
 };
 
 const server = require('http').createServer();
@@ -1111,7 +1111,7 @@ server.on('request', (req, res) => {
     switch (req.url) {
         case '/compute':
             const data = lengthyProcess();
-            return res.end(`Computed ${data.length} items`);
+            return res.end(`Computed ${data} items`);
         case '/':
             res.writeHead(301, { 'Location': '/compute' });
             return res.end();
@@ -1122,7 +1122,81 @@ server.on('request', (req, res) => {
 }).listen(8000);
 ```
 
-Try running this server and opening the example in two or three tabs at the same time. You should find the second and third tab only finish loading after the previous is finished i.e. requests are blocked - not good!
+Try running this server and opening the example in two or three tabs at the same time. You should find the second and third tab only finish loading after the previous is finished i.e. requests are blocked.
+
+## Benchmarking our server
+
+We can make use of the [`loadtest`](https://www.npmjs.com/package/loadtest) module to benchmark how many requests per second our server can handle ([ApacheBench, or `ab`](https://httpd.apache.org/docs/2.4/programs/ab.html), is a popular CLI tool with similar capabilities). Install it globally as follows:
+
+```bash
+npm install -g loadtest
+
+yarn add global loadtest
+```
+
+For access to the API we simply add the `loadtest` package to our `package.json` devDependencies:
+
+```json
+{
+    ...
+    "devDependencies": {
+        "loadtest": "*"
+    },
+    ...
+}
+```
+
+The following code makes use of the `loadtest` module for creating requests. You can run it in Node with the command `node benchmark.js n m` where *n* is the total number of requests to be made simultaneously by *m* clients. Try running the blocking server and, in a separate terminal session, run the following code to test 4 people accessing `http://localhost:8000/compute` simultaneously (in 3 separate tests):
+
+```bash
+node benchmark.js 3 4
+```
+
+```javascript
+// benchmark.js
+const loadtest = require('loadtest');
+const requests = parseInt(process.argv[2]) || undefined;  // 1st command line arg
+const concurrency = parseInt(process.argv[3]) || 1;       // 2nd command line arg
+
+let requestNum = 1;
+
+if (typeof requests !== 'number')
+    return process.stderr.write('Please provide number of requests as an argument');
+
+const printProgress = (percentage, newline) => {
+    process.stdout.clearLine();
+    process.stdout.cursorTo(0);
+    process.stdout.write(`Benchmark progress: ${percentage}%`);
+};
+
+const statusCallback = (error, result, latency) => {
+    const percentageComplete =
+        parseInt((requestNum++ / (requests * concurrency)) * 100);
+    if (percentageComplete === 100) return;
+    printProgress(percentageComplete);
+};
+
+const options = {
+    url: 'http://localhost:8000/compute',
+    maxRequests: requests * concurrency,
+    concurrency: concurrency,
+    statusCallback: statusCallback
+};
+
+process.stdout.write(`Benchmarking ${requests} requests`);
+if (concurrency > 1) process.stdout.write(` from ${concurrency} simultaneous clients`);
+process.stdout.write('...\n');
+printProgress(0);
+
+loadtest.loadTest(options, (error, result) => {
+    if (error) return process.stderr.write(error);
+    printProgress(100);
+    process.stdout.write(`\nAverage latency (ms): ${result.meanLatencyMs}\n`);
+    process.stdout.write(`Total number of errors: ${result.totalErrors}\n`);
+});
+```
+
+Depending on your computer's performance, you will likely observe that the mean latency is somewhere around 12s - 20s i.e. the 1st person waited around 5s, the second around 10s, the third around 15s etc. Indeed, because this is a blocking server, if 10 clients were to connect then the 10th person would be waiting a long time or timeout as they would need to wait for the 9 other people to have connected before the server handles their request - not good!
 
 ## Child Processes
 
@@ -1130,14 +1204,52 @@ The [`child_process` module](https://nodejs.org/api/child_process.html) provides
 
 * `exec`
 * `execFile`
-* `fork`
 * `spawn`
+* `fork`
 
 All four methods return an instance of the `ChildProcess` class. Such instances are `EventEmitter`s that represent spawned child processes and manage communication between the parent and child process.
 
+## `spawn` and `fork`
+
+`exec`, `execFile` and `fork` are all alternatives implemented on top of `spawn`. Let's investigate an example. Create the following JavaScript file and try running it:
+
+```javascript
+// spawn.js
+const { spawn } = require('child_process');
+const child = spawn('cmd', ['cd']);
+child.stdout.on('data', data => {
+    process.stdout.write(data);
+});
+```
+
+Notice how a new Command Prompt session is started, and the working directory is printed. There are a number of events we can listen to on the child process other than `data` such as `close`, `disconnect`, `error` and `message`. We can also pipe commands to a child process via its `stdin` writable stream.
+
+The `fork` function is a specialised version of `spawn` for specifically spawning Node processes. We can use `message` events to pass information back and forth between parent and child processes. Copy the following code into files in a new folder, and try running `parent.js`:
+
+```javascript
+// human.js
+const { fork } = require('child_process');
+const child = fork(`${__dirname}/dog.js`);
+child.send('Good boy!');
+child.on('message', msg => {
+    process.stdout.write(`Message from dog: ${msg}\n`);
+});
+
+// dog.js
+process.on('message', msg => {
+    process.stdout.write(`Message from human: ${msg}\n`);
+});
+setTimeout(() => {
+    process.send('Woof!');
+    process.exit();
+}, 1000);
+```
+
+Observe the messages sent between the two separate Node processes. We also specify the working directory in which to execute the forked process from to be the directory of the current Node module. This is useful if we wanted to run our Node file from a different directory e.g. `node fork-example/human.js`.
+
 ## `exec` and `execFile`
 
-Let's investigate an example. The method `exec` is used for running in a separate shell, whilst `execFile` is used for running an executable file directly. Create a new folder, add the following files and try running `parent.js`.
+The `exec` method is [similar](https://www.hacksparrow.com/difference-between-spawn-and-exec-of-node-js-child_process.html) to `spawn` for the most part, except `spawn` returns a streamed output and `exec` returns a buffered output. `exec` is used for running in a separate shell, whilst `execFile` is used for running an executable file directly. Create a new folder, add the following files and try running `parent.js`:
 
 ```javascript
 // parent.js
@@ -1145,13 +1257,13 @@ const { exec, execFile } = require('child_process');
 
 const childExec = exec('"child example.bat" Hello', { cwd: __dirname },
     (err, stdout, stderr) => {
-        if (err) process.stdout.write(stderr);
+        if (err) process.stderr.write(stderr);
         process.stdout.write(stdout);
 });
 
 const childExecFile = execFile('child example.bat', ['Hello'], { cwd: __dirname },
     (err, stdout, stderr) => {
-        if (err) process.stdout.write(stderr);
+        if (err) process.stderr.write(stderr);
         process.stdout.write(stdout);
 });
 ```
@@ -1161,23 +1273,119 @@ const childExecFile = execFile('child example.bat', ['Hello'], { cwd: __dirname 
 @echo %1 world!
 ```
 
-There are a number of things to note in the above code. In both examples, the "Hello" argument is passed down to the file to be executed. Double quotes are used so that spaces in path are not interpreted as multiple arguments. We specify the working directory in which to execute the child process from to be the directory of the current Node module. This is useful if we wanted to run our Node file from a different directory e.g. `node child/parent.js`. The callback is called when the process terminates, so if we wanted to stream data *as it was executing*, we could add a listener to the stream:
+There are a number of things to note in the above code. In both examples, the "Hello" argument is passed down to the file to be executed. Double quotes are used so that spaces in path are not interpreted as multiple arguments. As in the `fork` example, we specify the working directory in which to execute the child process from to be the directory of the current Node module. The callback is called when the process terminates, so if we wanted to stream data *as it was executing*, we could add a listener to the stream:
 
 ```javascript
-childExec.stdout.on('data', (data) => {
+childExec.stdout.on('data', data => {
     process.stdout.write(data);
 });
 ```
 
-Finally, whilst both examples look the same, the main difference is that `execFile` directly opens the file, whilst `exec` spawns a shell in the background in which to execute the command (`cmd.exe` in the case of Windows).
+This example is slightly misleading in the fact that `.bat` files are not executable on their own without a terminal so the [outcome is the same in both cases](https://nodejs.org/api/child_process.html#child_process_spawning_bat_and_cmd_files_on_windows) (the alternative would be to replace the file with a `.exe` and note the difference). The important thing to remember is that the syntax is similar and, whilst both examples look the same, the  `execFile` directly opens the file, whilst `exec` spawns a shell by default in which to execute the command (`cmd.exe` in the case of Windows).
 
-## `fork` and `spawn`
+## Synchronous counterpart methods
+
+Each of the four methods have synchronous counterparts which work in the exact same way except blocking the Node.js event loop until the child process exits or terminates: `spawnSync`, `forkSync`, `execSync`, `execFileSync`. These may be useful for automating shell scripts but, in most cases, these methods can have significant impact on performance due to stalling the event loop while spawned processes complete.
 
 ## Non-blocking server
 
+We now know enough to improve our server from earlier so that requests are no longer blocked. Incorporate the following code into your example:
+
+```javascript
+// server.js
+const { fork } = require('child_process');
+const server = require('http').createServer();
+server.on('request', (req, res) => {
+    switch (req.url) {
+        case '/compute':
+            // const data = lengthyProcess();   blocks server
+            const calculate = fork(`${__dirname}/lengthy-process.js`);
+            calculate.send('Begin calculations');
+            calculate.on('message', data => {
+                return res.end(`Computed ${data} items`);
+            });
+            break;
+        case '/':
+            res.writeHead(301, { 'Location': '/compute' });
+            return res.end();
+        default:
+            res.writeHead(404);
+            res.end();
+    }
+}).listen(8000);
+
+// lengthy-process.js
+const lengthyProcess = () => {
+    let data = new Array(Math.pow(10, 8));
+    for (let i = 0; i < data.length; i++) {
+        data[i] = i;
+    }
+    return data.length;
+};
+process.on('message', msg => {
+    let result = lengthyProcess();
+    process.send(result);
+});
+```
+
+Now run the benchmarking code in a separate terminal session once more and you will now see that the average wait time is significantly lower since each request is handled asynchronously (running the server on a separate machine would yield even better results as CPU resources will be used by both the server and benchmarking tool which slows down processing):
+
+```bash
+node benchmark.js 3 4
+```
+
 ## Load balancing our server
 
-https://nodejs.org/api/cluster.html 
+Since each Node process runs in a single thread, it only has access to a single core and does not take advantage of multi-core systems by default. We can improve our server performance even more by taking advantage of Node's [`cluster` module](https://nodejs.org/api/cluster.html). This will allow our server to load balance requests so that different requests are handled by different cores of the CPU to create a scalable web server.
+
+## The `cluster` module
+
+The `cluster` module allows for simple creation of child processes that all share the same server port. Create a new file in the folder for your server with the following code:
+
+```javascript
+// cluster.js
+const cluster = require('cluster');
+const cpus = require('os').cpus().length;
+
+if (cluster.isMaster) {
+    process.stdout.write(`Forking for ${cpus} CPUs\n`);
+    for (let i = 0; i < cpus; i++) {
+        cluster.fork();
+    }
+} else {
+    require(`${__dirname}/server`);
+}
+```
+The `isMaster` property of the `cluster` module determines if the process is the master process from which other server instances can be forked. The `fork` method spawns a new worker process for this module in each CPU (each of which will no longer be the master process and will hence run the server).
+
+Running the benchmark tool again and you may now see that the performance of the server has improved and the average latency decreased again (though again this is dependent on PC performance and better results would be seen if the benchmark is run on a separate machine to the server):
+
+```bash
+node benchmark.js 3 4
+```
+
+## Zero downtime restarting
+
+We can even improve our server so that, if worker processes crash, they are restarted. Add the following to the end of your `cluster.js` file:
+
+```javascript
+cluster.on('exit', (worker, code, signal) => {
+    if (code !==0 && !worker.exitedAfterDisconnect) {
+        process.stdout.write(`Worker ${worker.id} crashed - restarting\n`);
+        cluster.fork();
+    }
+});
+```
+
+The `exitedAfterDisconnect` property of the `Worker` class distinguishes between voluntary and accidental exits. Add the following line to your `server.js` file:
+
+```javascript
+process.stdout.write(`Starting server on process ${process.pid}\n`);
+```
+
+![Killing a Node cluster worker](./images/4-KillingNodeProcess.png)
+
+Now try re-running the server (`cluster.js`), and monitor the processes in Task Manager -> Details. Kill one of the `node.exe` processes with a corresponding PID given in the cluster logging by right clicking and selecting "End task". Observe the cluster logging as the worker is magically restarted!
 
 ## Incorporating chat application into scalable web server
 
@@ -1306,7 +1514,7 @@ const rl = readline.createInterface({
     input: process.stdin
 });
 
-client.on('data', (data) => {
+client.on('data', data => {
     process.stdout.write(data);
 });
 
@@ -1322,6 +1530,50 @@ process.on('SIGINT', () => {
 ```
 
 ## Complete web server application code
+
+```javascript
+// benchmark.js
+const loadtest = require('loadtest');
+const requests = parseInt(process.argv[2]) || undefined;  // 1st command line arg
+const concurrency = parseInt(process.argv[3]) || 1;       // 2nd command line arg
+
+let requestNum = 1;
+
+if (typeof requests !== 'number')
+    return process.stderr.write('Please provide number of requests as an argument');
+
+const printProgress = (percentage, newline) => {
+    process.stdout.clearLine();
+    process.stdout.cursorTo(0);
+    process.stdout.write(`Benchmark progress: ${percentage}%`);
+};
+
+const statusCallback = (error, result, latency) => {
+    const percentageComplete =
+        parseInt((requestNum++ / (requests * concurrency)) * 100);
+    if (percentageComplete === 100) return;
+    printProgress(percentageComplete);
+};
+
+const options = {
+    url: 'http://localhost:8000/compute',
+    maxRequests: requests * concurrency,
+    concurrency: concurrency,
+    statusCallback: statusCallback
+};
+
+process.stdout.write(`Benchmarking ${requests} requests`);
+if (concurrency > 1) process.stdout.write(` from ${concurrency} simultaneous clients`);
+process.stdout.write('...\n');
+printProgress(0);
+
+loadtest.loadTest(options, (error, result) => {
+    if (error) return process.stderr.write(error);
+    printProgress(100);
+    process.stdout.write(`\nAverage latency (ms): ${result.meanLatencyMs}\n`);
+    process.stdout.write(`Total number of errors: ${result.totalErrors}\n`);
+});
+```
 
 ## Pop quiz answers
 
@@ -1365,3 +1617,7 @@ process.on('SIGINT', () => {
 * https://staxmanade.com/2016/07/easily-simulate-slow-async-calls-using-javascript-async-await/
 * https://nodejs.org/api/child_process.html
 * https://dzone.com/articles/understanding-execfile-spawn-exec-and-fork-in-node
+* https://www.hacksparrow.com/difference-between-spawn-and-exec-of-node-js-child_process.html
+* https://www.npmjs.com/package/loadtest
+* https://httpd.apache.org/docs/2.4/programs/ab.html
+* https://nodejs.org/api/cluster.html
