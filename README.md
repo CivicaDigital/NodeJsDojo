@@ -122,7 +122,7 @@ You should be able to see the module of the Node process run from the above comm
 
 You might be wondering where this `module` has come from? It's a property stored on the `global` object.
 
-## The global object in Node
+## The `global` object in Node
 
 In Node, the top-level scope is not the global scope. In regular JavaScript, `var a = ...` in the top-level scope will define a global variable (not a recommended practice). But in Node, any top-level variables declared in a Node module will be local to that module. To allow for global variables, Node uses the `global` object.
 
@@ -409,7 +409,7 @@ Start by creating a folder called `chat` and create the following JavaScript fil
 const net = require('net');
 ```
 
-## The net module
+## The `net` module
 
 The `net` module provides a way of creating TCP servers and TCP clients (*Transmission Control Protocol*). Recall that TCP works by streaming packets of data where rigorous checking and acknowledgement of delivery ensure reliable data (a brief summary of UDP vs TCP can be found [here](https://support.holmsecurity.com/hc/en-us/articles/212963869)).
 
@@ -1126,7 +1126,50 @@ Try running this server and opening the example in two or three tabs at the same
 
 ## Child Processes
 
-Spawn fork exec execfile
+The [`child_process` module](https://nodejs.org/api/child_process.html) provides the ability to spawn child processes so that our application is not blocked like in the previous example. There are four main methods that can be used for asynchronous process creation:
+
+* `exec`
+* `execFile`
+* `fork`
+* `spawn`
+
+All four methods return an instance of the `ChildProcess` class. Such instances are `EventEmitter`s that represent spawned child processes and manage communication between the parent and child process.
+
+## `exec` and `execFile`
+
+Let's investigate an example. The method `exec` is used for running in a separate shell, whilst `execFile` is used for running an executable file directly. Create a new folder, add the following files and try running `parent.js`.
+
+```javascript
+// parent.js
+const { exec, execFile } = require('child_process');
+
+const childExec = exec('"child example.bat" Hello', { cwd: __dirname },
+    (err, stdout, stderr) => {
+        if (err) console.log(err);
+});
+
+childExec.stdout.on('data', (data) => {
+    process.stdout.write(data);
+});
+
+const childExecFile = execFile('child example.bat', ['Hello'], { cwd: __dirname },
+    (err, stdout, stderr) => {
+        if (err) console.log(err);
+});
+
+childExecFile.stdout.on('data', (data) => {
+    process.stdout.write(data);
+});
+```
+
+```bat
+@REM child example.bat
+@echo %1 world!
+```
+
+A few things to note in the above code. In both examples, the "Hello" argument is passed down to the file to be executed. Double quotes are used so that spaces in path are not interpreted as multiple arguments. We specify the working directory in which to execute the child process from to be the directory of the current Node module. This is useful if we wanted to run our Node file from a different directory e.g. `node child/parent.js`. Finally, whilst both examples look the same, the main difference is that `execFile` directly opens the file, whilst `exec` spawns a shell (`cmd.exe` in the case of Windows) in the background in which to execute the command.
+
+## `fork` and `spawn`
 
 ## Non-blocking server
 
@@ -1318,3 +1361,5 @@ process.on('SIGINT', () => {
 * https://momentjs.com/
 * https://nodejs.org/api/http.html
 * https://staxmanade.com/2016/07/easily-simulate-slow-async-calls-using-javascript-async-await/
+* https://nodejs.org/api/child_process.html
+* https://dzone.com/articles/understanding-execfile-spawn-exec-and-fork-in-node
