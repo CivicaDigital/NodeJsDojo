@@ -61,7 +61,6 @@ If you find this dojo particularly useful, any feedback, praise and/or [LinkedIn
 9. [Course outro](#course-outro)
 10. [Appendix](#appendix)
 
-
 # Prerequisites
 
 To follow along, you will need to install the following software on your local machine:
@@ -125,12 +124,14 @@ will take you into Node's shell called **REPL**. REPL stands for Read-Eval-Print
 ```bash
 > .help
 ```
-lists all of the available commands - try that now. Pressing the `Tab` key twice provides us with a list of available commands / autocomplete options. If you do that on an empty terminal line, you will get the list of properties on the `global` object in Node. Try pressing `Tab` twice after typing the following:
+lists all of the available commands - try that now. Pressing the `Tab` key twice provides us with a list of available commands / autocomplete options. If you do that on an empty terminal line, you will get the list of properties on the `global` object in Node.
+Let's type some code into Node's REPL:
 ```bash
 > var str = "foo";
+```
+You will see `undefined`. Now try pressing `Tab` twice after typing the following:
 
-undefined
-
+```bash
 > str.
 ```
 Now you will see what is available on the *str* variable. You will also notice that the result of assigning the variable is printed (`undefined` in this case).
@@ -157,10 +158,12 @@ in the terminal. The `repl` module allows you to create a custom REPL session. I
 
 Modules allow you to encapsulate related code into a single unit. A module has a 1 to 1 relationship with files on the file system and any module can be "required" by another module that needs it. `require` and `module` are modules themselves and are used for managing module dependencies. The `require` module itself provides the `require()` function used for loading in modules.
 
-Type into the terminal:
+Type into the terminal
 ```bash
 > node -p "module"
-
+```
+and you will see:
+```bash
 Module {
   id: '[eval]',
   exports: {},
@@ -187,7 +190,9 @@ In Node, the top-level scope is not the global scope. In regular JavaScript, `va
 For example, the `process` object on the `global` object allows Node to communicate with its running environment. Try running the following in terminal to see the versions of Node's dependencies:
 ```bash
 > node -p "process.versions"
-
+```
+This outputs:
+```bash
 { http_parser: '2.7.0',
   node: '8.9.4',
   v8: '6.1.534.50',
@@ -209,7 +214,9 @@ There are 5 variables on the `global` object that appear to be global when they 
 This is because when Node compiles a module, it wraps the code in a wrapper function. You can inspect the wrapper function used for a general module by running the following command in the terminal:
 ```bash
 > node -p "require('module').wrapper"
-
+```
+You should see the following:
+```bash
 [ '(function (exports, require, module, __filename, __dirname) { ',
   '\n});' ]
 ```
