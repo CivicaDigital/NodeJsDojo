@@ -358,7 +358,7 @@ fs.readFile(__filename, () => {
 });
 ```
 
-The `readFile` method of the File System (`fs`) module can be used to asynchronously read the entire contents of a file. Recall that `__filename` refers to the file name of the current module.
+The `readFile` method of the [File System (`fs`) module](https://nodejs.org/api/fs.html) can be used to asynchronously read the entire contents of a file. Recall that `__filename` refers to the file name of the current module.
 
 Which of these do you think will be displayed first?
 
@@ -1387,9 +1387,101 @@ Now try re-running the server (`cluster.js`), and monitor the processes in Task 
 
 ![Killing a Node cluster worker](./images/4-KillingNodeProcess.png)
 
-## Incorporating chat application into scalable web server
+## Serving pages in our scalable web server
 
-We will now finally attempt to create a scalable web server that users can chat on, combining everything we've learnt in this course.
+You've now set up a scalable web server that runs in multiple processes and is non-blocking to multiple requests. For the final touches it will be more useful to replace the response to clients with actual HTML pages instead of a string. [`express.js`](https://expressjs.com/) is a popular web framework package that extends Node's HTTP objects that we saw earlier. [`hogan.js`](http://twitter.github.io/hogan.js/) is a JavaScript templating engine developed at Twitter to interpolate data into web pages using Mustache. [`hogan-xpress`](https://www.npmjs.com/package/hogan-xpress) is a package that uses the [`hogan.js`](http://twitter.github.io/hogan.js/) templating engine for [`express.js`](https://expressjs.com/). There's a lot that can be learnt about all of these packages, but the following snippets that build upon our existing code showcase how simple it is to create a fully operational web server in Node.js from scratch. Try adding the following files in the correct folder locations, observe the clean separation of concerns and watch the magic happen!
+
+```bash
+npm install express
+npm install hogan-xpress
+
+yarn add express
+yarn add hogan-xpress
+```
+
+```javascript
+// app/main.js
+const cluster = require('cluster');
+const cpus = require('os').cpus().length;
+
+if (cluster.isMaster) {
+    process.stdout.write(`Forking for ${cpus} CPUs\n`);
+    for (let i = 0; i < cpus; i++) {
+        cluster.fork();
+    }
+} else {
+    require(`${__dirname}/server`);
+}
+
+cluster.on('exit', (worker, code, signal) => {
+    if (code !==0 && !worker.exitedAfterDisconnect) {
+        process.stdout.write(`Worker ${worker.id} crashed - restarting\n`);
+        cluster.fork();
+    }
+});
+
+// app/server.js
+const express = require('express');
+const app = express();
+
+app.set('port', 8000);
+app.set('view engine', 'html');   // use .html extension for templates
+app.set('layout', 'layout');      // use layout.html as the defalt layout
+app.enable('view cache');         // Express stores compiled templates in memory
+app.engine('html', require('hogan-xpress'));
+
+const compute = require(`${__filename}}/routes/compute`);
+app.use('/compute', compute);
+
+app.get('/', (req, res) => {
+    res.writeHead(301, { 'Location': '/compute' });
+    res.end();
+});
+
+app.listen(app.settings.port, () => {
+    process.stdout.write(`Starting server on process ${process.pid}\n`);
+});
+
+// app/routes/compute.js
+const { fork } = require('child_process');
+const express = require('express');
+const router = express.Router();
+
+router.route('/')
+    .get((req, res) => {
+        const calculate = fork(`${__dirname}/../controllers/lengthy-process.js`);
+        calculate.send('Begin calculations');
+        calculate.on('message', data => {
+            res.locals = { items : data };
+            res.render('template');
+        });
+    });
+
+module.exports = router;
+
+// app/controllers/lengthy-process.js
+const lengthyProcess = () => {
+    let data = new Array(Math.pow(10, 8));
+    for (let i = 0; i < data.length; i++) {
+        data[i] = i;
+    }
+    return data.length;
+};
+process.on('message', msg => {
+    let result = lengthyProcess();
+    process.send(result);
+});
+```
+```html
+<!-- app/views/layout.html -->
+<h1>My Web App</h1>
+<body>
+    {{{ yield }}}
+</body>
+
+<!-- app/views/template.html -->
+<p>Computed {{ data }} items</p>
+```
 
 # Pop quiz #3
 
@@ -1623,3 +1715,4 @@ loadtest.loadTest(options, (error, result) => {
 * https://www.npmjs.com/package/loadtest
 * https://httpd.apache.org/docs/2.4/programs/ab.html
 * https://nodejs.org/api/cluster.html
+* https://www.npmjs.com/package/hogan-xpress
