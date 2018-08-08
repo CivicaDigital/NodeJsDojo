@@ -2,9 +2,67 @@
 
 Welcome to this Node.js dojo, or *NoJo*. In this tutorial, you will learn the basics of Node and explore its applications in developing scalable network applications. You will learn what Node really is, including its asynchronous event capabilities, how modules enable clean encapsulation and you will even create a basic chat application and web server that can handle multiple concurrent requests.
 
+If you find this dojo particularly useful, any feedback, praise and/or [LinkedIn recommendations](https://uk.linkedin.com/in/keianbarton) you could give would be very much appreciated. Thanks!
+
 ![Node.js Logo](./images/0-NodeLogo.png)
 
-## Prerequisites
+# Contents
+
+1. [Prerequisites](#prerequisites)
+    * [Setting up your environment](#setting-up-your-environment)
+2. [What is Node?](#what-is-node)
+    * [Node's architecture](#nodes-architecture)
+    * [Node CLI and REPL](#node-cli-and-repl)
+    * [Running scripts in Node](#running-scripts-in-node)
+    * [Introduction to require and modules](#introduction-to-require-and-modules)
+    * [The `global` object in Node](#the-global-object-in-node)
+    * [Wrapping modules](#wrapping-modules)
+    * [A basic HTTP server](#a-basic-http-server)
+    * [Circular references](#circular-references)
+3. [Pop quiz #1](#pop-quiz-1)
+4. [Events and asynchronous code](#events-and-asynchronous-code)
+    * [The event queue, event loop and call stack](#the-event-queue-event-loop-and-call-stack)
+    * [Inside the event loop](#inside-the-event-loop)
+5. [Creating a chat application](#creating-a-chat-application)
+    * [The `net` module](#the-net-module)
+    * [Events](#events)
+    * [NPM / Yarn and installing packages](#npm--yarn-and-installing-packages)
+    * [What is a package?](#what-is-a-package)
+    * [Publishing packages](#publishing-packages)
+    * [Global packages](#global-packages)
+    * [Versioning packages](#versioning-packages)
+    * [Integrating `netcat` into the chat application](#integrating-netcat-into-the-chat-application)
+    * [Introduction to streams](#introduction-to-streams)
+    * [Types of streams](#types-of-streams)
+    * [Understanding our client code](#understanding-our-client-code)
+    * [Allowing users to message each other](#allowing-users-to-message-each-other)
+    * [Improving our chat application](#improving-our-chat-application)
+    * [Overview on requiring modules](#overview-on-requiring-modules)
+    * [Requiring JS and non-JS files](#requiring-js-and-non-js-files)
+    * [Caching modules](#caching-modules)
+    * [Incorporating `moment.js`](#incorporating-momentjs)
+    * [Last thoughts](#last-thoughts)
+6. [Pop quiz #2](#pop-quiz-2)
+7. [Creating a scalable web server](#creating-a-scalable-web-server)
+    * [Revisiting HTTP servers](#revisiting-http-servers)
+    * [Routing](#routing)
+    * [Blocking web requests](#blocking-web-requests)
+    * [Benchmarking our server](#benchmarking-our-server)
+    * [Child processes](#child-processes)
+    * [`spawn` and `fork`](#spawn-and-fork)
+    * [`exec` and `execFile`](#exec-and-execfile)
+    * [Synchronous counterpart methods](#synchronous-counterpart-methods)
+    * [Non-blocking server](#non-blocking-server)
+    * [Load balancing our server](#load-balancing-our-server)
+    * [The `cluster` module](#the-cluster-module)
+    * [Zero downtime restarting](#zero-downtime-restarting)
+    * [Serving pages with our server](#serving-pages-with-our-server)
+8. [Pop quiz #3](#pop-quiz-3)
+9. [Course outro](#course-outro)
+10. [Appendix](#appendix)
+
+
+# Prerequisites
 
 To follow along, you will need to install the following software on your local machine:
 
@@ -293,7 +351,7 @@ C. Manages the performance and logging of the application
 D. Provides information about, and control over, the current Node.js process
 ```
 
-# Events and Asynchronous Code
+# Events and asynchronous code
 
 ## The event queue, event loop and call stack
 
@@ -422,7 +480,7 @@ server.listen(1337);
 
 ## Events
 
-The `Server` is an instance of `EventEmitter`. This is a class within Node which is returned by the `events` module i.e. `const EventEmitter = require('events');`. Listeners (also extending `EventEmitter`) can listen for events and fire a callback, as well as emit events themselves. Add the following code to add a listener for the `connection` event which is fired whenever a client connects to the server.
+The `Server` is an instance of `EventEmitter`. This is a class within Node which is returned by the [`events`](https://nodejs.org/api/events.html) module i.e. `const EventEmitter = require('events');`. Listeners (also extending `EventEmitter`) can listen for events and fire a callback, as well as emit events themselves. Add the following code to add a listener for the `connection` event which is fired whenever a client connects to the server.
 
 ```javascript
 server.on('connection', socket => {
@@ -561,7 +619,7 @@ npm update
 yarn upgrade
 ```
 
-## Integrating netcat into the chat application
+## Integrating `netcat` into the chat application
 
 Now that `netcat` has been installed, it's time to use it in the application. Create a new JavaScript file as follows:
 
@@ -933,9 +991,9 @@ console.log("Hi!");
 
 In the above code snippet you should now see that "Hi!" is logged to the console twice, though the previous exports method is more efficient.
 
-## Incorporating Moment.js
+## Incorporating `moment.js`
 
-Moment is a popular package for parsing, validating, manipulating, and displaying dates and times in JavaScript. Whilst our previous `timestamp` function may be able reasonable for our chat application, Moment can give more accurate dates/times by taking into account timezones and proper formatting. In this simple scenario we're probably overengineering the solution, but it's useful to see some of the functionality of Moment.js (*feel free to skip this section for more Node related content*).
+[`moment.js`](https://momentjs.com/) is a popular package for parsing, validating, manipulating, and displaying dates and times in JavaScript. Whilst our previous `timestamp` function may be able reasonable for our chat application, Moment can give more accurate dates/times by taking into account timezones and proper formatting. In this simple scenario we're probably overengineering the solution, but it's useful to see some of the functionality of Moment.js (*feel free to skip this section for more Node related content*).
 
 Let's install the Moment package as follows:
 
@@ -974,9 +1032,9 @@ timestamp = () => {
 };
 ```
 
-Have a look at the [Moment.js](https://momentjs.com/) home page for a list of different commands and display settings, with interactive controls to showcase different time and date formats in different locales.
+Have a look at the [`moment.js`](https://momentjs.com/) home page for a list of different commands and display settings, with interactive controls to showcase different time and date formats in different locales.
 
-## Last thoughts on the chat application
+## Last thoughts
 
 You should now have a working chat application, in which we have covered a lot of Node concepts. That said, there are a few remaining issues in this application. If you finish the rest of the dojo early, see if you can improve the following:
 * If user A starts typing a message and user B sends a message, user A's WIP message is lost.
@@ -1198,7 +1256,7 @@ loadtest.loadTest(options, (error, result) => {
 
 Depending on your computer's performance, you will likely observe that the mean latency is somewhere around 12s - 20s i.e. the 1st person waited around 5s, the second around 10s, the third around 15s etc. Indeed, because this is a blocking server, if 10 clients were to connect then the 10th person would be waiting a long time or timeout as they would need to wait for the 9 other people to have connected before the server handles their request - not good!
 
-## Child Processes
+## Child processes
 
 The [`child_process` module](https://nodejs.org/api/child_process.html) provides the ability to spawn child processes so that our application is not blocked like in the previous example. There are four main methods that can be used for asynchronous process creation:
 
@@ -1387,9 +1445,11 @@ Now try re-running the server (`cluster.js`), and monitor the processes in Task 
 
 ![Killing a Node cluster worker](./images/4-KillingNodeProcess.png)
 
-## Serving pages in our scalable web server
+## Serving pages with our server
 
 You've now set up a scalable web server that runs in multiple processes and is non-blocking to multiple requests. For the final touches it will be more useful to replace the response to clients with actual HTML pages instead of a string. [`express.js`](https://expressjs.com/) is a popular web framework package that extends Node's HTTP objects that we saw earlier. [`hogan.js`](http://twitter.github.io/hogan.js/) is a JavaScript templating engine developed at Twitter to interpolate data into web pages using Mustache. [`hogan-xpress`](https://www.npmjs.com/package/hogan-xpress) is a package that uses the [`hogan.js`](http://twitter.github.io/hogan.js/) templating engine for [`express.js`](https://expressjs.com/). There's a lot that can be learnt about all of these packages, but the following snippets that build upon our existing code showcase how simple it is to create a fully operational web server in Node.js from scratch. Try adding the following files in the correct folder locations, observe the clean separation of concerns and watch the magic happen!
+
+Place your `cluster.js` file in a new folder (`app` in my examples), and run that file to observe clustering. A slightly cleaner (but more advanced in terms of Express) version of this code is provided in the appendix of this course.
 
 ```bash
 npm install express
@@ -1400,66 +1460,36 @@ yarn add hogan-xpress
 ```
 
 ```javascript
-// app/main.js
-const cluster = require('cluster');
-const cpus = require('os').cpus().length;
-
-if (cluster.isMaster) {
-    process.stdout.write(`Forking for ${cpus} CPUs\n`);
-    for (let i = 0; i < cpus; i++) {
-        cluster.fork();
-    }
-} else {
-    require(`${__dirname}/server`);
-}
-
-cluster.on('exit', (worker, code, signal) => {
-    if (code !==0 && !worker.exitedAfterDisconnect) {
-        process.stdout.write(`Worker ${worker.id} crashed - restarting\n`);
-        cluster.fork();
-    }
-});
-
-// app/server.js
+// server.js
+const { fork } = require('child_process');
 const express = require('express');
 const app = express();
 
 app.set('port', 8000);
-app.set('view engine', 'html');   // use .html extension for templates
-app.set('layout', 'layout');      // use layout.html as the defalt layout
-app.enable('view cache');         // Express stores compiled templates in memory
+app.set('view engine', 'html');           // use .html extension for templates
+app.set('views', `${__dirname}/views`);   // sets views directory for app
 app.engine('html', require('hogan-xpress'));
-
-const compute = require(`${__filename}}/routes/compute`);
-app.use('/compute', compute);
 
 app.get('/', (req, res) => {
     res.writeHead(301, { 'Location': '/compute' });
     res.end();
 });
 
+app.get('/compute', (req, res) => {
+    process.stdout.write(`Performing calculations on process ${process.pid}\n`);
+        const calculate = fork(`${__dirname}/lengthy-process.js`);
+        calculate.send('Begin calculations');
+        calculate.on('message', data => {
+            res.locals = { pid: process.pid, items : data };
+            res.render('template');
+        });
+});
+
 app.listen(app.settings.port, () => {
     process.stdout.write(`Starting server on process ${process.pid}\n`);
 });
 
-// app/routes/compute.js
-const { fork } = require('child_process');
-const express = require('express');
-const router = express.Router();
-
-router.route('/')
-    .get((req, res) => {
-        const calculate = fork(`${__dirname}/../controllers/lengthy-process.js`);
-        calculate.send('Begin calculations');
-        calculate.on('message', data => {
-            res.locals = { items : data };
-            res.render('template');
-        });
-    });
-
-module.exports = router;
-
-// app/controllers/lengthy-process.js
+// lengthy-process.js
 const lengthyProcess = () => {
     let data = new Array(Math.pow(10, 8));
     for (let i = 0; i < data.length; i++) {
@@ -1473,56 +1503,64 @@ process.on('message', msg => {
 });
 ```
 ```html
-<!-- app/views/layout.html -->
+<!-- ./views/template.html -->
 <h1>My Web App</h1>
-<body>
-    {{{ yield }}}
-</body>
+<p>Server running on PID {{ pid }}. Computed {{ items }} items.</p>
+```
 
-<!-- app/views/template.html -->
-<p>Computed {{ data }} items</p>
+Observe in the HTML files the use of the {{ }} syntax, or [Mustache](https://mustache.github.io/mustache.5.html) syntax. Data to these views is easily passed from the JavaScript files.
+
+Try benchmarking your server again to see the different clustered servers being connected to:
+```bash
+node benchmark.js 3 4
+```
+
+Also, try getting others to connect to your server to verify they can load your web pages. They will likely see the same PID as you, but with enough processing and concurrent pages, different processes will be used (which you will see when benchmarking as before). Use the following command once again in a separate terminal session to find your IP:
+
+```bash
+node -p "require('os').networkInterfaces()['Ethernet 2'].filter(n => n.address.startsWith('10'))[0].address"
 ```
 
 # Pop quiz #3
 
-1. 
+1. Which class and property are used in HTTP servers for routing?
 
 ```javascript
-A. 
-B. 
-C. 
-D. 
+A. http.IncomingMessage  and   route
+B. http.ClientRequest    and   url
+C. http.ClientRequest    and   route
+D. http.IncomingMessage  and   url
 ```
 
-2. 
+2. Which of these methods will implicitly spawn an instance of the V8 engine?
 
 ```javascript
-A. 
-B. 
-C. 
-D. 
+A. spawn
+B. fork
+C. exec
+D. execFile
 ```
 
-3. 
+3. Which of these properties of the `cluster` module should be used to decide if we should clone the instance of the application?
 
 ```javascript
-A. 
-B. 
-C. 
-D. 
+A. isWorker
+B. isMaster
+C. exitedAfterDisconnect
+D. worker
 ```
 
 # Course outro
 
 You did it! You now know the basics of Node.js and have explored many of its features. The next step would be to have a play with some of Node's popular packages such as [Express](https://expressjs.com/), [Mocha](https://mochajs.org/) and [Angular](https://angular.io/) to build your own web application using Node.
 
-If you have found this particularly useful, any feedback, praise and/or [LinkedIn recommendations](https://uk.linkedin.com/in/keianbarton) you could give would be very much appreciated. Thanks!
+Again, if you have found this dojo useful, any feedback, praise and/or [LinkedIn recommendations](https://uk.linkedin.com/in/keianbarton) would be really appreciated. Thanks!
 
 # Appendix
 
 ## Proxy issues and CNTLM
 
-Some users have had issues downloading and installing npm packages with the corporate proxy. Try using the following commands in combination with running CNTLM via the `start proxy` bat file. For the Bath office, this can be downloaded from `Y:\CloudVault\Pinky\Applications\Freeware\CNTLM` where the Y drive is mapped to `\\iplbath.com`.
+Some users have had issues downloading and installing npm packages with the corporate proxy. Try using the following commands in combination with running [CNTLM](http://cntlm.sourceforge.net/) - contact me if you need more info on getting CNTLM set up on your computer.
 
 ```bash
 npm config set proxy http://127.0.0.1:3128
@@ -1623,7 +1661,7 @@ process.on('SIGINT', () => {
 });
 ```
 
-## Complete web server application code
+## Complete benchmarking tool application code
 
 ```javascript
 // benchmark.js
@@ -1669,6 +1707,94 @@ loadtest.loadTest(options, (error, result) => {
 });
 ```
 
+## Complete scalable web server code
+
+```javascript
+// app/main.js
+const cluster = require('cluster');
+const cpus = require('os').cpus().length;
+
+if (cluster.isMaster) {
+    process.stdout.write(`Forking for ${cpus} CPUs\n`);
+    for (let i = 0; i < cpus; i++) {
+        cluster.fork();
+    }
+} else {
+    require(`${__dirname}/server`);
+}
+
+cluster.on('exit', (worker, code, signal) => {
+    if (code !==0 && !worker.exitedAfterDisconnect) {
+        process.stdout.write(`Worker ${worker.id} crashed - restarting\n`);
+        cluster.fork();
+    }
+});
+
+// app/server.js
+const express = require('express');
+const app = express();
+
+app.set('port', 8000);
+app.set('view engine', 'html');           // use .html extension for templates
+app.set('layout', 'layout');              // use layout.html as the defalt layout
+app.set('views', `${__dirname}/views`);   // sets views directory for app
+app.enable('view cache');                 // Express stores compiled templates in memory
+app.engine('html', require('hogan-xpress'));
+
+const compute = require(`${__dirname}/routes/compute`);
+app.use('/compute', compute);
+
+app.get('/', (req, res) => {
+    res.writeHead(301, { 'Location': '/compute' });
+    res.end();
+});
+
+app.listen(app.settings.port, () => {
+    process.stdout.write(`Starting server on process ${process.pid}\n`);
+});
+
+// app/routes/compute.js
+const { fork } = require('child_process');
+const express = require('express');
+const router = express.Router();
+
+router.route('/')
+    .get((req, res) => {
+        process.stdout.write(`Performing calculations on process ${process.pid}\n`);
+        const calculate = fork(`${__dirname}/../controllers/lengthy-process.js`);
+        calculate.send('Begin calculations');
+        calculate.on('message', data => {
+            res.locals = { pid: process.pid, items : data };
+            res.render('template');
+        });
+    });
+
+module.exports = router;
+
+// app/controllers/lengthy-process.js
+const lengthyProcess = () => {
+    let data = new Array(Math.pow(10, 8));
+    for (let i = 0; i < data.length; i++) {
+        data[i] = i;
+    }
+    return data.length;
+};
+process.on('message', msg => {
+    let result = lengthyProcess();
+    process.send(result);
+});
+```
+```html
+<!-- app/views/layout.html -->
+<h1>My Web App</h1>
+<body>
+    {{{ yield }}}
+</body>
+
+<!-- app/views/template.html -->
+<p>Server running on PID {{ pid }}. Computed {{ items }} items.</p>
+```
+
 ## Pop quiz answers
 
 ### Quiz 1
@@ -1686,9 +1812,9 @@ loadtest.loadTest(options, (error, result) => {
 5. C
 
 ### Quiz 3
-1. 
-2. 
-3. 
+1. D
+2. B
+3. B
 
 ## References
 
@@ -1702,17 +1828,13 @@ loadtest.loadTest(options, (error, result) => {
 * https://gist.github.com/creationix/707146
 * https://www.keycdn.com/blog/npm-vs-yarn/
 * https://docs.npmjs.com/cli/install
-* https://nodejs.org/api/stream.html
+* https://nodejs.org/api/
 * https://www.sitepoint.com/basics-node-js-streams/
-* https://nodejs.org/api/buffer.html
-* https://nodejs.org/api/addons.html
 * https://momentjs.com/
-* https://nodejs.org/api/http.html
 * https://staxmanade.com/2016/07/easily-simulate-slow-async-calls-using-javascript-async-await/
-* https://nodejs.org/api/child_process.html
 * https://dzone.com/articles/understanding-execfile-spawn-exec-and-fork-in-node
 * https://www.hacksparrow.com/difference-between-spawn-and-exec-of-node-js-child_process.html
 * https://www.npmjs.com/package/loadtest
 * https://httpd.apache.org/docs/2.4/programs/ab.html
-* https://nodejs.org/api/cluster.html
 * https://www.npmjs.com/package/hogan-xpress
+* https://mustache.github.io/mustache.5.html
