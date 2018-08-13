@@ -2,8 +2,6 @@
 
 Welcome to this Node.js dojo, or *NoJo*. In this tutorial, you will learn the basics of Node and explore its applications in developing scalable network applications. You will learn what Node really is, including its asynchronous event capabilities, how modules enable clean encapsulation and you will even create a basic chat application and web server that can handle multiple concurrent requests.
 
-If you find this dojo particularly useful, any feedback, praise and/or [LinkedIn recommendations](https://uk.linkedin.com/in/keianbarton) you could give would be very much appreciated. Thanks!
-
 ![Node.js Logo](./images/0-NodeLogo.png)
 
 # Contents
@@ -1561,7 +1559,7 @@ D. worker
 
 You did it! You now know the basics of Node.js and have explored many of its features. The next step would be to have a play with some of Node's popular packages such as [Express](https://expressjs.com/), [Mocha](https://mochajs.org/) and [Angular](https://angular.io/) to build your own web application using Node.
 
-Again, if you have found this dojo useful, any feedback, praise and/or [LinkedIn recommendations](https://uk.linkedin.com/in/keianbarton) would be really appreciated. Thanks!
+If you have found this dojo useful, any feedback would be really appreciated. Send me a message on my [LinkedIn](https://uk.linkedin.com/in/keianbarton). Thanks! :)
 
 # Appendix
 
