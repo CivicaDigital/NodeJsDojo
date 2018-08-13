@@ -23,7 +23,8 @@ Welcome to this Node.js dojo, or *NoJo*. In this tutorial, you will learn the ba
     * [Inside the event loop](#inside-the-event-loop)
 5. [Creating a chat application](#creating-a-chat-application)
     * [The `net` module](#the-net-module)
-    * [Events](#events)
+    * [Introduction to events](#introduction-to-events)
+    * [Listening for the `end` event](#listening-for-the-end-event)
     * [NPM / Yarn and installing packages](#npm--yarn-and-installing-packages)
     * [What is a package?](#what-is-a-package)
     * [Publishing packages](#publishing-packages)
@@ -203,13 +204,17 @@ Anything defined on the `global` object is available across all modules e.g. `gl
 
 There are 5 variables on the `global` object that appear to be global when they are not:
 
-* `__dirname`   - The directory name of the current module
-* `__filename`  - The file name of the current module
-* `exports`     - A reference to the module.exports that is shorter to type
-* `module`      - A reference to the current module
-* `require()`   - Used to require modules
+1. `__dirname`   - The directory name of the current module
+2. `__filename`  - The file name of the current module
+3. `exports`     - A convenience variable referring to `module.exports` that is shorter to type. The `module.exports` object is used for defining what a module exports and makes available through the `require()` method
+4. `module`      - A reference to the current module
+5. `require()`   - Used to require modules
 
-This is because when Node compiles a module, it wraps the code in a wrapper function. You can inspect the wrapper function used for a general module by running the following command in the terminal:
+This is because when Node compiles a module, it wraps the code in a wrapper function. By doing this, Node.js achieves a few things:
+- It keeps top-level variables (defined with `var`, `const` or `let`) scoped to the module rather than the global object
+- It helps to provide the 5 global-looking variables that are actually specific to the module
+
+You can inspect the wrapper function used for a general module by running the following command in the terminal:
 ```bash
 > node -p "require('module').wrapper"
 ```
@@ -219,7 +224,7 @@ You should see the following:
   '\n});' ]
 ```
 
-It should be noted that `exports` is a convenience variable that simply refers to `module.exports`. The `module.exports` object is used for defining what a module exports and makes available through the `require()` method. In the following few lines of code we can see that the `exports` object can be used to export properties (but should not be replaced), whereas the entire object for `module.exports` *can* be replaced:
+As above, `exports` simply refers to `module.exports`. In the following few lines of code we can see that the `exports` object can be used to export properties (but should not be replaced), whereas the entire object for `module.exports` *can* be replaced:
 
 ```javascript
 exports.foo = 1;       // okay
@@ -241,7 +246,13 @@ server.on('request', (req, res) => {
 }).listen(8000);
 ```
 
-This code snippet creates a basic HTTP server that can accept requests, and respond with "Hello world". Run the server by running `node server.js` in the terminal. If you open up a browser session and visit `http://localhost:8000`, you will see the response printed. To modularize this code, add to the bottom of the code:
+This code snippet creates a basic HTTP server that can accept requests, and respond with "Hello world". Run the server by running `node server.js` in the terminal. If you open up a browser session and visit `http://localhost:8000`, you will see the response printed. Note the use of the [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions). This is to simplify the above code's syntax, but Node will happily work with the classic function syntax:
+
+```javascript
+server.on('request', function(req, res) { ... }).listen(8000);
+```
+
+We can modularize this code by adding the following to the bottom of the code:
 ```javascript
 module.exports = server;
 ```
@@ -305,11 +316,13 @@ console.log(mA.loadedValue);
 console.log(mA.notLoadedValue);
 ```
 
-If you run `node moduleA.js`, you will see that `123` and `undefined` are logged to the console. Node will share a partial exports object to any module that requires it in the case of a circular dependencies.
+If you run `node moduleA.js`, you will see that `123` and `undefined` are logged to the console. Node will share a *partial* exports object to any module that requires it in the case of a circular dependencies. So, in the above example, `circularModuleA`'s `exports` object contains `loadedValue`.
+
+In other words, the `exports` object will contain everything that was available at the time of it being required thus allowing transitive dependencies to be loaded even when they would cause cycles.
 
 # Pop quiz #1
 
-Time for your first quiz! You can find the answers in the appendix at the end of this training course.
+Time for your first quiz! [You can click here for the answers](#pop-quiz-1-answers) (no cheating!)
 
 1. Which of these modules is included in Node.js and can be used to create a web server?
 
@@ -459,7 +472,14 @@ On every iteration, Node executes the following phases:
 
 `setImmediate` is designed to execute a script once the current *poll* phase completes. `setTimeout` schedules a script to be run after a minmium threshold in ms has elapsed (note the use of the word minimum; the exact timing is not guaranteed).
 
-The main advantage to using `setImmediate` over `setTimeout` is `setImmediate` will always be executed before any timers if scheduled within an I/O cycle, independently of how many timers are present. So in the previous example, we were reading a file so `setImmediate` was called first in that case. It's always recommended to use `setImmediate` if you want something to be executed on the next iteration (*tick*) of the event loop. Confusingly enough, there is also a `process.nextTick` method that does not execute on the next iteration of the event loop. It is actually processed independently of the phases in the event loop, after the current operation finishes and before the event loop continues - it should be used with caution.
+The main advantage to using `setImmediate` over `setTimeout` is `setImmediate` will always be executed before any timers if scheduled within an I/O cycle, independently of how many timers are present. So in the previous example, we were reading a file so `setImmediate` was called first in that case. It's always recommended to use `setImmediate` if you want something to be executed on the next iteration (*tick*) of the event loop.
+
+Confusingly enough, there is also a `process.nextTick` method that does not execute on the next iteration of the event loop. It is actually processed independently of the phases in the event loop, after the current operation finishes and before the event loop continues - *it should be used with caution*.
+
+To summarise:
+- `setTimeout` schedules a script to be run after a minimum threshold in ms has elapsed
+- `setImmediate` fires on the following iteration or 'tick' of the event loop. It fires before other timers if inside an I/O cycle
+- `process.nextTick` fires immediately on the same phase
 
 # Creating a chat application
 
@@ -483,7 +503,7 @@ const server = net.createServer();
 server.listen(1337);
 ```
 
-## Events
+## Introduction to events
 
 The `Server` is an instance of `EventEmitter`. This is a class within Node which is returned by the [`events`](https://nodejs.org/api/events.html) module i.e. `const EventEmitter = require('events');`. Listeners (also extending `EventEmitter`) can listen for events and fire a callback, as well as emit events themselves. Add the following code to add a listener for the `connection` event which is fired whenever a client connects to the server.
 
@@ -493,6 +513,10 @@ server.on('connection', socket => {
     socket.write('Hello!\n');
 });
 ```
+
+So, in the above code, when a client connects to the server (and the `connection` event is consequently emitted), the listener executes the inner code block (logging and writing to the socket). A more detailed explanation of Node events can be found [here](https://nodejs.org/api/events.html), but the basic principle involves emitting events (via `EventEmitter`'s `emit` method) and listening for those events to execute callbacks (via `EventEmitter`'s `on` method). The `EventEmitter` calls all listeners synchronously in the order in which they were registered.
+
+## Listening for the `end` event
 
 A socket is one endpoint of a two-way communication link between two programs running on the network (so in this case, a client socket connecting to the server). To test this code, press `Ctrl + \` to split the terminal in Visual Studio Code. In one session, run the command:
 ```bash
@@ -504,7 +528,7 @@ telnet localhost 1337
 ```
 You should see `Hello!` is displayed in the client terminal session, and `Client connected` in the server terminal session. To exit the Telnet session press `Ctrl + ]` and type `quit`, and press `Ctrl + C` for the Node session.
 
-Let's listen for the 'end' event so we can also add logging for when a client disconnects. You can also shorten the instantiation of the server so that a listener for the `connection` event is also added. The `listen` method also accepts a callback for its second parameter to fire on the `listening` event (emitted when the server has been bound to the listening port). Replace the server code with the following:
+Let's listen for the `end` event so we can also add logging for when a client disconnects. You can also shorten the instantiation of the server so that a listener for the `connection` event is also added. The `listen` method also accepts a callback for its second parameter to fire on the `listening` event (emitted when the server has been bound to the listening port). Replace the server code with the following:
 
 ```javascript
 // server.js
@@ -530,7 +554,7 @@ Telnet is somewhat limited as the Windows version tries to send data for each ch
 
 Npm consists of the [npm registry](https://npmjs.com) and the corresponding command-line tool, which is distributed with Node.js. The registry contains over 600,000 packages which provide open-source modules that can be used in your applications. Yarn is an alternative package manager command-line tool developed by Facebook which was designed to address some initial issues with the way npm handles dependencies, whilst still making use of the npm registry. Both tools are similar and an in-depth discussion of which to use can be found [here](https://www.keycdn.com/blog/npm-vs-yarn/).
 
-**Note:** Both the equivalent npm and Yarn commands are provided in any code snippets (but obviously avoid running both). If you have any proxy issues that are causing issues downloading the package, try using CNTLM in combination with changing your package manager's proxy settings - see the Appendix at the end for more details.
+**Note:** Both the equivalent npm and Yarn commands are provided in any code snippets (but obviously avoid running both). If you have any proxy issues that are causing issues downloading the package, try using CNTLM in combination with changing your package manager's proxy settings - [see the Appendix at the end for more details](#proxy-issues-and-cntlm).
 
 Quit any running terminal processes and run the following:
 ```bash
@@ -650,20 +674,24 @@ rl.on('line', (line) => {
 client.addr('localhost').port(1337).connect();
 ```
 
-As mentioned previously, the `netcat` module can be used to create TCP applications, allowing us to connect to the TCP server. The [`readline` module](https://nodejs.org/api/readline.html), supplied with Node, provides an interface from reading data from a readable stream, one line at a time. The above code creates a client that connects to the server, then listens for the `data` event from the server to write to the client's command line. If the client writes a line of data and ends the line (e.g. by pressing Enter), then we listen for the `line` event to send that data across to the server.
+As mentioned previously, the `netcat` module can be used to create TCP applications, allowing us to connect to the TCP server. The [`readline` module](https://nodejs.org/api/readline.html), supplied with Node, provides an interface from reading data from a readable stream, one line at a time.
+
+The above code creates a client that connects to the server, then listens for the `data` event from the server to write back to the client's command line. The `line` event is emitted whenever the input stream receives an end-of-line input (`\n`, `\r`, or `\r\n`). So if the client writes a line of data and ends the line (e.g. by pressing Enter), then we listen to the `line` event to send that data across to the server.
 
 ## Introduction to streams
 
-The previous code snippet introduced `process.stdin` and `process.stdout` used for reading from and writing to the console respectively (indeed `console.log(...)` in Node writes to `process.stdout` but with a newline at the end). These are examples of streams.
+The previous code snippet introduced `process.stdin` and `process.stdout` used for reading from and writing to the console respectively (indeed `console.log(...)` in Node writes to `process.stdout` but with a newline at the end). These are examples of *streams*.
 
 Streams are essentially collections of data that might not be available all at once and do not have to be stored entirely in memory. They are instances of (and extensions to) the `EventEmitter` class, with an interface for receiving and writing data.
 
-One example for using streams might be if you would like to read data from a massive file in chunks, without needing to load the entire file into memory (which might end up blocking other code). Try creating a separate folder containing a large text file and the following JavaScript file:
+A detailed explanation of streams can be found [here](https://nodejs.org/api/stream.html) and in the next section, but readable streams let you read data from a source, and writable streams let you write data to a destination. You typically use the `data` event with readable streams for listening for incoming data, and use the `write` method with writable streams for writing data to that stream.
+
+Let's consider an example. One such use case for using streams might be if you would like to read data from a massive file in chunks, without needing to load the entire file into memory (which might end up blocking other code). Try creating a separate folder containing a large text file (e.g. [you can download a text file of Sherlock Holmes here](https://norvig.com/big.txt)) and the following JavaScript file:
 
 ```javascript
 // stream-file-efficient.js
 const fs = require('fs');
-const stream = fs.createReadStream('./data.txt');
+const stream = fs.createReadStream('./big.txt');
 
 stream.on('data', data => {
     console.log(data.toString());
@@ -714,6 +742,12 @@ fs.createReadStream('./file1.txt')
     .pipe(fs.createWriteStream('./file2.txt'));
 ```
 
+Observe that we include `Transform` in curly braces - this makes use of [destructuring assignment](https://hacks.mozilla.org/2015/05/es6-in-depth-destructuring/). Destructuring on objects lets you bind variables to different properties of an object. If the property we require has the same name as the variable we would like to assign it to, then we can use the { } syntactical shortcut. The line is equivalent to:
+
+```javascript
+const Transform = require('stream').Transform;
+```
+
 ## Understanding our client code
 
 Back to our client code, we can see that we use streams to receive input data from `process.stdin` and output it to the server. Any received data is written to `process.stdout`. One thing to notice in the code is how we haven't defined the `readline` interface using an output to `process.stdout` - this would create a bug whereby any data received from the server would be output to the command line, which would be read back in and sent to the server and looped back and forth:
@@ -744,7 +778,7 @@ client.addr('localhost').port(1337).connect();
 
 Let's build on our server code so that multiple users can message each other.
 
-Replace the server code with the following and try running 2 instances of `client.js` alongside `server.js` simultaneously:
+Replace the server code with the following and try running 2 instances of `client.js` alongside `server.js` simultaneously. You can do this by pressing `Ctrl + \` to split the terminal into 3 separate sessions - one for the server, and two for the clients:
 
 ```javascript
 // server.js
@@ -764,7 +798,9 @@ const server = require('net')
 });
 ```
 
-There are a number of issues with the code we have so far:
+In the different client sessions, try sending messages and observe the results. Exit a client session by pressing  `Ctrl + C` and you should notice a problem!
+
+Clearly, there are a number of issues with the code we have so far:
 1. The message is logged as a Buffer object in the server, instead of a string. Messaging also may appear to be glitchy without clear end of lines.
 2. You should see that when either user sends a message, it is logged in the server process, but neither user can see each other's messages.
 3. Exiting a client session crashes the server.
@@ -814,13 +850,15 @@ const server = require('net')
 
 3. Clients disconnecting crashes the server
 
-TCP servers require clients to send a final message to close the connection. Since we are exiting our clients by pressing CTRL + C, the exit is immediate and the server never receives a message that the message is closed. Add the following to the bottom of your client code:
+TCP servers require clients to send a final message to close the connection. Since we are exiting our clients by pressing `Ctrl + C`, the exit is immediate and the server never receives a message that the message is closed. Add the following to the bottom of your client code:
 
 ```javascript
 process.on('SIGINT', () => {
     client.close(() => { process.exit(); });
 });
-``` 
+```
+
+Signal events are emitted when the Node.js process receives a *signal*. A listing of standard POSIX signal names, such as 'SIGINT', can be found [here](http://man7.org/linux/man-pages/man7/signal.7.html). In this case, pressing `Ctrl + C` in the terminal session sends a 'SIGINT' signal to the session to end it. We want to listen for this signal so that we can properly close the client's connection.
 
 ## Improving our chat application
 
@@ -958,9 +996,7 @@ client.addr(ADDRESS).port(PORT).connect();
 
 ## Caching modules
 
-After files are resolved during the require process, Node then wraps the module into a wrapper function as discussed earlier and executes the code. The final step of this process is for Node to cache the module so that it does not need to be reloaded repeatedly whenever it is needed.
-
-Create the following JavaScript files in the same folder to explore this concept further:
+After files are resolved during the require process, Node then wraps the module into a wrapper function as [mentioned earlier](#wrapping-modules) and executes the code. The final step of this process is for Node to cache the module so that it does not need to be reloaded repeatedly whenever it is needed. Create the following JavaScript files in the same folder to explore this concept further:
 
 ```javascript
 // main.js
@@ -1048,7 +1084,7 @@ You should now have a working chat application, in which we have covered a lot o
 
 # Pop quiz #2
 
-Time for your second quiz! You can find the answers in the appendix at the end of this training course.
+Time for your second quiz! [Click here for the answers](#pop-quiz-2-answers).
 
 1. What are the steps that Node goes through to resolve and execute a module that is required with the `require()` function?
 
@@ -1312,7 +1348,7 @@ Observe the messages sent between the two separate Node processes. We also speci
 
 ## `exec` and `execFile`
 
-The `exec` method is [similar](https://www.hacksparrow.com/difference-between-spawn-and-exec-of-node-js-child_process.html) to `spawn` for the most part, except `spawn` returns a streamed output and `exec` returns a buffered output. `exec` is used for running in a separate shell, whilst `execFile` is used for running an executable file directly. Create a new folder, add the following files and try running `parent.js`:
+The `exec` method is [similar](https://www.hacksparrow.com/difference-between-spawn-and-exec-of-node-js-child_process.html) to `spawn` for the most part, except `spawn` returns a streamed output and `exec` returns a buffered output. `exec` is used for running in a separate shell, whilst `execFile` is used for running an executable file directly (hence making it slightly more efficient). Create a new folder, add the following files and try running `parent.js`:
 
 ```javascript
 // parent.js
@@ -1454,7 +1490,7 @@ Now try re-running the server (`cluster.js`), and monitor the processes in Task 
 
 You've now set up a scalable web server that runs in multiple processes and is non-blocking to multiple requests. For the final touches it will be more useful to replace the response to clients with actual HTML pages instead of a string. [`express.js`](https://expressjs.com/) is a popular web framework package that extends Node's HTTP objects that we saw earlier. [`hogan.js`](http://twitter.github.io/hogan.js/) is a JavaScript templating engine developed at Twitter to interpolate data into web pages using Mustache. [`hogan-xpress`](https://www.npmjs.com/package/hogan-xpress) is a package that uses the [`hogan.js`](http://twitter.github.io/hogan.js/) templating engine for [`express.js`](https://expressjs.com/). There's a lot that can be learnt about all of these packages, but the following snippets that build upon our existing code showcase how simple it is to create a fully operational web server in Node.js from scratch. Try adding the following files in the correct folder locations, observe the clean separation of concerns and watch the magic happen!
 
-Place your `cluster.js` file in a new folder (`app` in my examples), and run that file to observe clustering. A slightly cleaner (but more advanced in terms of Express) version of this code is provided in the appendix of this course.
+Place your `cluster.js` file in a new folder (`app` in my examples), and run that file to observe clustering. A slightly cleaner (but more advanced in terms of Express) version of this code is [provided in the Appendix](#complete-scalable-web-server-code) of this course.
 
 ```bash
 npm install express
@@ -1528,6 +1564,8 @@ node -p "require('os').networkInterfaces()['Ethernet 2'].filter(n => n.address.s
 
 # Pop quiz #3
 
+This is your final quiz! [Click here for the answers](#pop-quiz-3-answers).
+
 1. Which class and property are used in HTTP servers for routing?
 
 ```javascript
@@ -1564,6 +1602,8 @@ If you have found this dojo useful, any feedback would be really appreciated. Se
 # Appendix
 
 ## Proxy issues and CNTLM
+
+Return to ['NPM / Yarn and installing packages'](#npm--yarn-and-installing-packages).
 
 Some users have had issues downloading and installing npm packages with the corporate proxy. Try using the following commands in combination with running [CNTLM](http://cntlm.sourceforge.net/) - contact me if you need more info on getting CNTLM set up on your computer.
 
@@ -1714,6 +1754,8 @@ loadtest.loadTest(options, (error, result) => {
 
 ## Complete scalable web server code
 
+Return to ['Serving pages with our server'](#serving-pages-with-our-server).
+
 ```javascript
 // app/main.js
 const cluster = require('cluster');
@@ -1802,24 +1844,30 @@ process.on('message', msg => {
 
 ## Pop quiz answers
 
-### Quiz 1
+### Pop quiz #1 answers
 1. B
 2. C
 3. A
 4. C
 5. D
 
-### Quiz 2
+[Click here to return to pop quiz #1](#pop-quiz-1)
+
+### Pop quiz #2 answers
 1. A
 2. B
 3. C
 4. A
 5. C
 
-### Quiz 3
+[Click here to return to pop quiz #2](#pop-quiz-2)
+
+### Pop quiz #3 answers
 1. D
 2. B
 3. B
+
+[Click here to return to pop quiz #3](#pop-quiz-3)
 
 ## References
 
@@ -1843,3 +1891,7 @@ process.on('message', msg => {
 * https://httpd.apache.org/docs/2.4/programs/ab.html
 * https://www.npmjs.com/package/hogan-xpress
 * https://mustache.github.io/mustache.5.html
+* https://norvig.com/big.txt
+* https://hacks.mozilla.org/2015/05/es6-in-depth-destructuring/
+* http://man7.org/linux/man-pages/man7/signal.7.html
+* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
